@@ -1,0 +1,16 @@
+const config = {
+  AUTHENTICATION: process.env.VUE_APP_AUTHENTICATION === "true",
+  BASE_URL: process.env.VUE_APP_BASE_URL,
+  FHIR_URL: process.env.VUE_APP_FHIR_URL,
+  KEYCLOAK_URL: process.env.VUE_APP_KEYCLOAK_URL,
+  KEYCLOAK_REALM: process.env.VUE_APP_KEYCLOAK_REALM,
+  KEYCLOAK_CLIENT_ID: process.env.VUE_APP_KEYCLOAK_CLIENT,
+  JANUS_URL: process.env.VUE_APP_JANUS_URL,
+  VIDEO_BACKEND_URL: process.env.VUE_APP_VIDEO_BACKEND_URL,
+  WEBSOCKET_URL: process.env.VUE_APP_WEBSOCKET_URL,
+  VITU_PROCESS_URL: process.env.VUE_APP_VITU_PROCESS_URL,
+  SECURITY_URL: process.env.VUE_APP_SECURITY_URL,
+  DEMO: process.env.VUE_APP_DEMO === "true"
+};
+
+export default config;
