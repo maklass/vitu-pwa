@@ -24,13 +24,19 @@ Vue.use(VueClipboard);
 window.adapter = adapter;
 
 router.beforeEach((to, from, next) => {
-  let keycloak = store.state.authentication.keycloak;
-  if (to.meta.requiresAuth) {
-    if (!keycloak.authenticated) {
-      keycloak.login();
-      return;
+  //Shows login if authentication is set to true in config
+  if (config.AUTHENTICATION) {
+    const keycloak = store.state.authentication.keycloak;
+    if (to.meta.requiresAuth) {
+      if (!keycloak.authenticated) {
+        keycloak.login({
+          redirectUri: window.location.origin + to.fullPath
+        });
+        return;
+      }
     }
   }
+
   next();
 });
 
