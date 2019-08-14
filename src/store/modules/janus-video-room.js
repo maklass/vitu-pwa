@@ -60,6 +60,8 @@ const actions = {
       let localParticipant = new LocalParticipant("eeeeh");
       localParticipant.pluginHandle = pluginHandle;
       commit("setLocalParticipant", localParticipant);
+
+      janusApi.register(pluginHandle, state.room, "eeeeh", "!kurento!");
     } catch (error) {
       console.error(error);
       commit("addError", error);

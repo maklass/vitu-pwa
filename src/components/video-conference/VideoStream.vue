@@ -42,7 +42,7 @@ export default {
      * Sets the srcObject of the video element to the janus stream.
      */
     updateVideoStream() {
-      if (this.$refs.video && this.$refs.video.srcObject !== this.stream) {
+      if (this.$refs.video && this.$refs.video.srcObject !== this.stream && this.stream !== undefined) {
         this.$refs.video.srcObject = this.stream;
       }
     }

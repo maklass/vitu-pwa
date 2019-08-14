@@ -1,33 +1,33 @@
 <template>
   <div>
-    <Navbar />
-    <b-container fluid>
-      <b-row>
-        <b-col class="sidebar">
+    <notification-panels :showError="error" :errorMessage="error" :showSuccess="showSuccess" :successMessage="$t('planner.caseAssignmentSuccessful')" :fluid="true" />
+    <div class="container-fluid planner">
+      <div class="row">
+        <div class="col sidebar">
           <h6>{{ $t("planner.schedulableCases") }}</h6>
           <div class="form-group">
-            <input type="text" class="form-control" :placeholder="$t('planner.searchCase')" />
+            <input type="text" class="form-control" :placeholder="$t('planner.searchCase')" v-model="searchTermCases" />
           </div>
-          <spinner v-if="!schedulableCases" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" :message="$t('data.loading')" />
           <p v-if="schedulableCases && schedulableCases.length === 0">{{ $t("planner.noSchedulableCases") }}</p>
-          <b-list-group v-if="schedulableCases">
-            <draggable v-model="schedulableCases" v-bind="dragOptions" @start="drag = true" @end="drag = false">
-              <b-list-group-item v-for="clinicalCase in schedulableCases" :key="clinicalCase.id" class="flex-column align-items-start group-item entry">
+          <spinner v-if="!schedulableCases" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" :message="$t('data.loading')" />
+          <div class="list-group" v-if="schedulableCases">
+            <draggable class="draggable" v-model="schedulableCases" v-bind="dragOptions" @start="drag = true" @end="drag = false">
+              <div class="list-group-item flex-column align-items-start group-item entry" v-for="clinicalCase in schedulableCases" :key="clinicalCase.id">
                 <div class="headline text-muted">{{ $t("planner.case") }} {{ clinicalCase.caseId }}</div>
                 <br />
-                <div class="text-muted">{{ clinicalCase.patientName }}, {{ clinicalCase.patientBirthDate }}</div>
+                <div class="text-muted">{{ clinicalCase.patientName }}, {{ $d(new Date(clinicalCase.patientBirthDate)) }}</div>
                 <div class="text-muted">{{ clinicalCase.diagnosis }}</div>
-              </b-list-group-item>
+              </div>
             </draggable>
-          </b-list-group>
-        </b-col>
-        <b-col>
+          </div>
+        </div>
+        <div class="col">
           <h6>{{ $t("planner.planner") }}</h6>
-          <b-form-group>
-            <b-form-input :placeholder="$t('planner.searchConference')"></b-form-input>
-          </b-form-group>
-          <spinner v-if="!rooms" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" :message="$t('data.loading')" />
+          <div class="form-group">
+            <input class="form-control" :placeholder="$t('planner.searchConference')" v-model="searchTermConference" />
+          </div>
 
+          <spinner v-if="!rooms" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" :message="$t('data.loading')" />
           <div v-if="rooms" class="conferences">
             <b-card no-body :class="['conference-card', 'new', { ghost: drag }]" @click="openAddConferenceModal">
               <div class="headline">{{ $t("planner.scheduleNewConference") }}</div>
@@ -36,7 +36,7 @@
                 <plus-icon class="icon" />
               </div>
             </b-card>
-            <div no-body v-for="conference in filteredRooms" :key="conference.room">
+            <div no-body v-for="conference in filteredRooms" :key="conference.id">
               <draggable
                 v-model="conference.tumorConference.entries"
                 :options="dragOptions"
@@ -45,34 +45,25 @@
                 @change="event => onChange(event, conference)"
                 @choose="openRoomDetailsModal(conference)"
                 class="draggable-rooms"
-                :style="{ 'min-height': drag ? '' : '', border: drag ? 'lightgrey 2px dashed' : '' }"
+                :style="{ border: drag && dragOverConference != conference.id ? 'lightgrey 2px dashed' : 'transparent 2px solid' }"
+                :id="conference.id"
               >
-                <b-card no-body :class="['conference-card', { ghost: drag }]" @click="openRoomDetailsModal">
-                  <div class="headline text-muted">
-                    {{ conference.tumorConference.description }}
-                    <br />
-                    {{ $d(new Date(conference.tumorConference.date), "long") }}
-                  </div>
-                  <div class="spacer" />
-                  <div class="conference-card-footer">
-                    <pencil-icon class="icon" />
-                    <div class="cases">
-                      <span class="count">{{ conference.tumorConference.entries.length }}</span>
-                      <br />
-                      {{ $tc("planner.casesAssigned", conference.tumorConference.entries.length) }}
-                    </div>
-                  </div>
-                </b-card>
+                <conference-card :conference="conference" @click="openRoomDetailsModal" :class="[{ ghost: drag && dragOverConference != conference.id }]">
+                  <template slot="icon">
+                    <pencil-icon />
+                  </template>
+                </conference-card>
               </draggable>
             </div>
           </div>
-        </b-col>
-      </b-row>
-    </b-container>
+        </div>
+      </div>
+    </div>
 
     <b-modal
       id="modalAddConference"
       ref="modalAddConference"
+      footer-class="add-conference-footer"
       size="lg"
       @ok="addNewConference"
       @hide="resetAddConferenceModal"
@@ -80,8 +71,9 @@
       :ok-title="$t('planner.create')"
       :cancel-title="$t('cancel')"
       :header-text-variant="'primary'"
+      :ok-disabled="!addNewConferenceButtonEnabled"
     >
-      <b-row>
+      <div class="row">
         <b-col md="auto">
           <datepicker
             class="datepicker"
@@ -92,39 +84,55 @@
             :language="datePickerLanguage"
             :bootstrap-styling="true"
             :monday-first="true"
-          ></datepicker>
-          <b-form-group horizontal breakpoint="md" :label="$t('planner.time')" label-cols="3">
-            <b-form-input type="time" v-model="newConference.time"></b-form-input>
-          </b-form-group>
+          />
+          <div class="from-group" :label="$t('planner.time')" label-cols-md="3">
+            <input class="form-control" type="time" v-model="newConference.time" />
+          </div>
         </b-col>
         <b-col>
           <div class="conference-details">
-            <b-form-group>
-              <b-form-input required type="text" v-model="newConference.name" :placeholder="$t('planner.enterConferenceName')" />
-            </b-form-group>
-            <b-form-textarea v-model="newConference.description" :placeholder="$t('planner.description')" :rows="5" :max-rows="10"></b-form-textarea>
+            <div class="form-group">
+              <input class="form-control" required type="text" v-model="newConference.name" :maxlength="maxLengthConferenceName" :placeholder="$t('planner.enterConferenceName')" />
+            </div>
+            <div v-if="showHintDateTimeInPast" class="hint-past">
+              <strong>{{ $t("hint") }}:</strong> {{ $t("planner.hintConferenceInPast") }}
+            </div>
+            <!-- <b-form-textarea v-model="newConference.description" :placeholder="$t('planner.description')" :rows="5" :max-rows="10"></b-form-textarea> -->
           </div>
         </b-col>
-      </b-row>
+      </div>
     </b-modal>
 
     <b-modal
       id="modalAddCase"
       ref="modalAddCase"
+      footer-class="add-case-footer"
       size="lg"
       :title="$t('planner.addCase')"
       :ok-title="$t('planner.addCase')"
       :cancel-title="$t('cancel')"
       :header-text-variant="'primary'"
       @ok="addCurrentEntryToConference"
+      @hide="cancelAddEntry"
     >
-      <h5 v-if="item">{{ $t("worklist.case") }} {{ item.caseId }}</h5>
-      <p v-if="item && currentConference">
-        {{ item.patientName }}, {{ item.patientBirthDate }}
-        <br />
-        {{ currentConference.tumorConference.description }} - {{ $d(new Date(currentConference.tumorConference.date), "long") }}
-      </p>
-      <b-table hover :fields="fields" :items="getDocumentsForCase" :bordered="true" :small="true">
+      <div class="add-case-details">
+        <div class="case-overview">
+          <h6 v-if="item">{{ $t("worklist.case") }}</h6>
+          <p v-if="item && currentConference">
+            {{ $t("worklist.case") }} {{ item.caseId }} <br />
+            {{ item.patientName }}, {{ $d(new Date(item.patientBirthDate)) }} <br />
+            {{ $t("worklist.diagnosis") }}: {{ item.diagnosis }}
+          </p>
+        </div>
+        <div class="conference-overview">
+          <h6 v-if="currentConference">{{ $t("conference.conference") }}</h6>
+          <p v-if="item && currentConference">
+            {{ currentConference.tumorConference.description }} <br />
+            {{ $d(new Date(currentConference.tumorConference.date), "long") }}
+          </p>
+        </div>
+      </div>
+      <b-table v-if="demo" hover :fields="fields" :items="getDocumentsForCase" :bordered="true" :small="true">
         <template slot="select">
           <div style="text-align: center;">
             <b-checkbox></b-checkbox>
@@ -135,49 +143,82 @@
 
     <b-modal id="modalRoomDetails" ref="modalRoomDetails" size="lg" :title="$t('conference.videoConference')" ok-only :header-text-variant="'primary'">
       <div v-if="currentConference">
-        <h5>{{ currentConference.tumorConference.description }}</h5>
-        <p>
-          {{ $d(new Date(currentConference.tumorConference.date), "long") }}
-        </p>
-        <h6>{{ $t("worklist.cases") }}</h6>
-        <table class="table table-sm">
-          <thead>
-            <tr>
-              <th scope="col">#</th>
-              <th scope="col">{{ this.$i18n.t("worklist.patient") }}</th>
-              <th scope="col">{{ this.$i18n.t("worklist.birthDate") }}</th>
-              <th scope="col">{{ this.$i18n.t("worklist.diagnosis") }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(entry, index) in currentConference.tumorConference.entries" :key="entry.id">
-              <th scope="row">{{ index + 1 }}</th>
-              <td v-if="entry.patient">{{ entry.patient.firstName }} {{ entry.patient.lastName }}</td>
-              <td v-if="entry.patient">{{ entry.patient.dateOfBirth }}</td>
-              <td v-if="entry.tumorDiagnose">{{ entry.tumorDiagnose }}</td>
-              <td v-if="!entry.patient">{{ entry.patientName }}</td>
-              <td v-if="!entry.patient">{{ entry.patientBirthDate }}</td>
-              <td v-if="!entry.tumorDiagnose">{{ entry.diagnosis }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="room-details-header">
+          <div class="room-details-info">
+            <h5 class="room-details-title">{{ currentConference.tumorConference.description }}</h5>
+            <p v-if="currentConference.tumorConference && currentConference.tumorConference.date">
+              {{ $d(new Date(currentConference.tumorConference.date), "long") }}
+            </p>
+          </div>
+          <div>
+            <b-dropdown id="dropdown-right" right text="" variant="secondary" class="m-2">
+              <template slot="button-content">
+                <delete-icon class="delete-icon" />
+              </template>
+              <b-dropdown-item @click="deleteRoom(currentConference.janusId)">{{ $t("planner.deleteConference") }}</b-dropdown-item>
+            </b-dropdown>
+          </div>
+        </div>
+        <b-tabs card class="tabs">
+          <b-tab class="tab-pane">
+            <template slot="title">
+              {{ $t("worklist.cases") }}
+            </template>
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">{{ this.$i18n.t("worklist.patient") }}</th>
+                  <th scope="col">{{ this.$i18n.t("worklist.birthDate") }}</th>
+                  <th scope="col">{{ this.$i18n.t("worklist.diagnosis") }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(entry, index) in currentConference.tumorConference.entries" :key="entry.id">
+                  <th scope="row">{{ index + 1 }}</th>
+                  <td v-if="entry.patient">{{ entry.patient.firstName }} {{ entry.patient.lastName }}</td>
+                  <td v-if="entry.patient">{{ entry.patient.dateOfBirth }}</td>
+                  <td v-if="entry.tumorDiagnose">{{ entry.tumorDiagnose }}</td>
+                  <td v-if="!entry.patient">{{ entry.patientName }}</td>
+                  <td v-if="!entry.patient">{{ entry.patientBirthDate }}</td>
+                  <td v-if="!entry.tumorDiagnose">{{ entry.diagnosis }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </b-tab>
+          <b-tab active class="tab-pane">
+            <template slot="title">
+              {{ $t("conference.participants") }}
+            </template>
+            <room-participants :roomId="currentConference.janusId" />
+          </b-tab>
+        </b-tabs>
       </div>
+    </b-modal>
+
+    <b-modal id="modalCaseAlreadyExists" ref="modalCaseAlreadyExists" :title="$t('planner.caseAlreadyExists')" ok-only :header-text-variant="'primary'">
+      {{ $t("planner.caseAlreadyExistsDescription") }}
     </b-modal>
   </div>
 </template>
 
 <script>
-import Navbar from "@/components/Navbar";
+import ConferenceCard from "@/components/ConferenceCard";
+import NotificationPanels from "@/components/ui/NotificationPanels";
+import RoomParticipants from "@/components/RoomParticipants";
+import { addEntryToConference, fetchEntries, getStatuses, updateEntry } from "../api/process-api";
+import { getRooms, addRoom, addParticipantsToRoom, deleteRoom } from "../api/video-api";
+import { handleAxiosError } from "@/util/error-util";
+import config from "../config/config";
+
+import Datepicker from "vuejs-datepicker";
+import DeleteIcon from "vue-material-design-icons/Delete";
+import PencilIcon from "vue-material-design-icons/Pencil";
+import PlusIcon from "vue-material-design-icons/Plus";
+import Spinner from "vue-simple-spinner";
 import draggable from "vuedraggable";
 import { mapState } from "vuex";
-import { getRooms, addRoom, addEntryToConference } from "../api/video-api";
-import { fetchEntries, fetchStatuses } from "../api/process-api";
-import Spinner from "vue-simple-spinner";
-import PlusIcon from "vue-material-design-icons/Plus";
-import PencilIcon from "vue-material-design-icons/Pencil";
-import Datepicker from "vuejs-datepicker";
 import { de, en, es } from "vuejs-datepicker/dist/locale";
-import config from "../config/config";
 
 export default {
   data() {
@@ -198,24 +239,67 @@ export default {
         numberOfCases: 0
       },
 
+      dragOverConference: null,
       drag: false,
+      error: null,
+      showSuccess: false,
 
-      datepickerState: {
-        disabledDates: {
-          to: new Date(new Date().setDate(new Date().getDate() - 1))
-        },
-        highlighted: {
-          // days: [1, 2, 3, 4, 5]
-        }
-      }
+      searchTermConference: null,
+      searchTermCases: ""
     };
   },
 
   computed: {
     ...mapState({
-      cases: state => state.cases.cases,
-      token: state => state.authentication.keycloak.token
+      token: state => state.authentication.keycloak.token,
+      subject: state => state.authentication.keycloak.subject
     }),
+
+    addNewConferenceButtonEnabled() {
+      if (this.newConference && this.newConference.date && this.newConference.time && this.newConference.name) {
+        return true;
+      } else {
+        return false;
+      }
+    },
+
+    showHintDateTimeInPast() {
+      if (!this.newConference || !this.newConference.date || !this.newConference.time) {
+        return false;
+      }
+
+      const currentDate = new Date();
+      const currentTime = currentDate.getHours() + ":" + currentDate.getMinutes();
+
+      if (
+        currentDate.getFullYear() === this.newConference.date.getFullYear() &&
+        currentDate.getMonth() === this.newConference.date.getMonth() &&
+        currentDate.getDate() === this.newConference.date.getDate() &&
+        new Date("1970-01-01 " + currentTime) > new Date("1970-01-01 " + this.newConference.time)
+      ) {
+        return true;
+      } else {
+        return false;
+      }
+    },
+
+    maxLengthConferenceName() {
+      return config.MAX_LENGTH_CONFERENCE_NAME;
+    },
+
+    datepickerState() {
+      let date = new Date();
+      date.setHours(0, 0, 0, 0);
+
+      return {
+        disabledDates: {
+          to: date
+        },
+        highlighted: {
+          // days: [1, 2, 3, 4, 5]
+        }
+      };
+    },
 
     demo() {
       return config.DEMO;
@@ -235,11 +319,29 @@ export default {
     },
 
     filteredRooms() {
-      if (!this.rooms || !this.demo) {
+      if (!this.rooms) {
         return this.rooms;
-      } else {
-        return this.rooms.filter(room => room.tumorConference.description !== "Demo");
       }
+
+      return this.rooms.filter(room => {
+        if (room.tumorConference && room.tumorConference.id === -1) {
+          return false;
+        }
+
+        if (this.demo && room.tumorConference.description !== "Demo") {
+          return false;
+        }
+
+        if (room.tumorConference && room.tumorConference.date && new Date().getTime() > new Date(room.tumorConference.date).getTime() + 1000 * 60 * 60 * 12) {
+          return false;
+        }
+
+        if (this.searchTermConference && room.tumorConference.description && !room.tumorConference.description.toLowerCase().includes(this.searchTermConference.toLowerCase())) {
+          return false;
+        }
+
+        return true;
+      });
     },
 
     item() {
@@ -275,6 +377,11 @@ export default {
         } else {
           return this.entries.entity
             .filter(entry => entry.status.description === "ASSIGN_TO_TUMOR_CONFERENCE")
+            .filter(entry =>
+              JSON.stringify(entry)
+                .toLowerCase()
+                .includes(this.searchTermCases.toLowerCase())
+            )
             .map(entry => {
               return {
                 id: entry.id,
@@ -285,7 +392,8 @@ export default {
                 diagnosis: entry.tumorDiagnose,
                 status: entry.status,
                 statusNumber: `${entry.status.orderNumber}/${this.statuses.length}`,
-                statusLabel: this.$t(`worklist.statusCode.${entry.status.description}`)
+                statusLabel: this.$t(`worklist.statusCode.${entry.status.description}`),
+                entry: entry
               };
             });
         }
@@ -301,7 +409,7 @@ export default {
         animation: 50,
         group: {
           name: "cases",
-          put: () => console.log(arguments)
+          put: this.dragOptionsPut
         },
         ghostClass: "ghost"
       };
@@ -309,12 +417,25 @@ export default {
   },
 
   methods: {
+    dragOptionsPut(component) {
+      this.dragOverConference = component.el.id;
+    },
+
+    handleError(error) {
+      this.error = handleAxiosError(error, this);
+      window.scrollTo(0, 0);
+    },
+
     openAddConferenceModal() {
       this.$refs.modalAddConference.show();
     },
 
     openAddCaseModal() {
       this.$refs.modalAddCase.show();
+    },
+
+    openCaseAlreadyExistsModal() {
+      this.$refs.modalCaseAlreadyExists.show();
     },
 
     openRoomDetailsModal(room) {
@@ -327,7 +448,7 @@ export default {
         id: 0,
         name: null,
         description: null,
-        date: null,
+        date: new Date(),
         time: null,
         numberOfCases: 0
       };
@@ -337,26 +458,76 @@ export default {
       if (event && event.added) {
         this.currentCase = event.added.element;
         this.currentConference = conference;
-        this.openAddCaseModal();
+        if (this.currentConference.tumorConference.entries.filter(e => e.id === this.currentCase.id).length < 2) {
+          this.openAddCaseModal();
+        } else {
+          this.openCaseAlreadyExistsModal();
+          this.reload();
+        }
       }
     },
 
-    addCurrentEntryToConference() {
-      if (this.currentConference && this.currentConference.tumorConference) {
-        addEntryToConference(this.currentConference.tumorConference.id, this.currentCase, this.token);
+    async addCurrentEntryToConference() {
+      try {
+        if (this.currentConference && this.currentConference.tumorConference) {
+          let entry = this.currentCase.entry;
+          let waitForCaseDiscussionStatus = this.statuses.find(status => status.description === "WAIT_FOR_CASE_DISCUSSION");
+
+          if (waitForCaseDiscussionStatus) {
+            entry.status = waitForCaseDiscussionStatus;
+            await updateEntry(entry, this.token);
+          }
+
+          await addEntryToConference(this.currentConference.tumorConference.id, entry, this.token);
+
+          this.showSuccess = true;
+          await this.reload();
+          setTimeout(() => {
+            this.showSuccess = false;
+          }, config.SUCCESS_HEADER_TIMEOUT);
+        }
+      } catch (e) {
+        this.handleError(e);
+      }
+    },
+
+    reload() {
+      this.entries = null;
+      this.rooms = null;
+      this.getEntries();
+      this.getRooms();
+    },
+
+    cancelAddEntry(event) {
+      if (event && (event.trigger === "cancel" || event.trigger === "backdrop")) {
+        this.reload();
       }
     },
 
     async addNewConference() {
-      this.rooms = null;
-      let date = new Date(this.newConference.date);
-      if (this.newConference.time) {
-        date.setHours(this.newConference.time.split(":")[0]);
-        date.setMinutes(this.newConference.time.split(":")[1]);
-        this.newConference.date = date;
+      try {
+        this.rooms = null;
+        let date = new Date(this.newConference.date);
+        if (this.newConference.time) {
+          date.setHours(this.newConference.time.split(":")[0]);
+          date.setMinutes(this.newConference.time.split(":")[1]);
+          this.newConference.date = date;
+        }
+        const room = (await addRoom(this.newConference.name, this.newConference.date, this.token)).data;
+        await addParticipantsToRoom(room.janusId, this.subject, this.token);
+        this.getRooms();
+      } catch (e) {
+        this.handleError(e);
       }
-      await addRoom(this.newConference.name, this.newConference.date, this.token);
-      this.loadRooms();
+    },
+
+    async deleteRoom(roomId) {
+      try {
+        await deleteRoom(roomId, this.token);
+        this.reload();
+      } catch (e) {
+        this.handleError(e);
+      }
     },
 
     getDocumentsForCase() {
@@ -372,31 +543,43 @@ export default {
       ];
     },
 
-    async loadRooms() {
-      let response = await getRooms(this.token);
-      if (response.status === 200) {
-        this.rooms = response.data.map(room => {
-          return {
-            ...room,
-            numberOfCases: 0
-          };
-        });
+    async getRooms() {
+      try {
+        let response = await getRooms(this.token);
+        if (response.status === 200) {
+          this.rooms = response.data.entity.map(room => {
+            return {
+              ...room,
+              numberOfCases: 0
+            };
+          });
+        }
+      } catch (e) {
+        this.handleError(e);
+      }
+    },
+
+    async getEntries() {
+      try {
+        let response = await fetchEntries({}, this.token);
+        if (response.status === 200) {
+          this.entries = response.data;
+        }
+      } catch (e) {
+        this.handleError(e);
       }
     },
 
     async initialize() {
       try {
-        let response = await fetchStatuses({}, this.token);
+        let response = await getStatuses({}, this.token);
         if (response.status === 200) {
           this.statuses = response.data.sort((e1, e2) => e1.orderNumber - e2.orderNumber);
         }
-        response = await fetchEntries({}, this.token);
-        if (response.status === 200) {
-          this.entries = response.data;
-        }
-        this.loadRooms();
+        await this.getEntries();
+        await this.getRooms();
       } catch (e) {
-        console.error(e);
+        this.handleError(e);
       }
     }
   },
@@ -406,21 +589,18 @@ export default {
   },
 
   components: {
-    Navbar,
-    Spinner,
-    PlusIcon,
-    PencilIcon,
     draggable,
-    Datepicker
+    ConferenceCard,
+    Datepicker,
+    DeleteIcon,
+    NotificationPanels,
+    PencilIcon,
+    PlusIcon,
+    RoomParticipants,
+    Spinner
   }
 };
 </script>
-
-<style lang="scss">
-.vdp-datepicker__calendar {
-  border: none !important;
-}
-</style>
 
 <style lang="scss" scoped>
 .conference-details {
@@ -454,31 +634,15 @@ export default {
   }
 }
 
+.delete-icon {
+  color: rgba(0, 0, 0, 0.6);
+}
+
 .draggable-rooms {
   height: 100%;
 
   .entry {
     display: none;
-  }
-}
-
-.conference-card-footer {
-  display: flex;
-
-  .icon {
-    align-self: flex-end;
-    font-size: 1.5rem;
-  }
-
-  .cases {
-    text-align: right;
-    flex: 1;
-
-    color: map-get($theme-colors, "primary");
-    .count {
-      font-size: 1.5rem;
-      font-weight: bold;
-    }
   }
 }
 
@@ -491,18 +655,79 @@ export default {
   color: map-get($theme-colors, "primary");
 }
 
+.draggable {
+  min-height: 8rem;
+}
+
 .conferences {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(15em, 1fr));
   grid-gap: 0.25rem;
 }
 
-.container-fluid {
+.planner {
   padding-top: 15px;
+  padding-bottom: 15px;
 }
+
+.tabs {
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
+.room-details-title {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.room-details-header {
+  display: flex;
+}
+
+.room-details-info {
+  flex: 1;
+  overflow-x: hidden;
+  margin-right: 1rem;
+}
+
+.list-group-item {
+  .text-muted {
+    font-size: 1rem;
+  }
+}
+
+.add-case-details {
+  display: flex;
+
+  > div {
+    width: 50%;
+  }
+}
+
+.hint-past {
+  color: red;
+}
+
 @media (min-width: 576px) {
   .sidebar {
     max-width: 300px;
   }
+}
+</style>
+
+<style lang="scss">
+.add-case-footer,
+.add-conference-footer {
+  .btn-secondary {
+    background: white;
+  }
+}
+
+.vdp-datepicker__calendar {
+  border: none !important;
+}
+
+.btn.dropdown-toggle.btn-secondary {
+  background: white;
 }
 </style>

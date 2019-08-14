@@ -11,9 +11,12 @@ import router from "./router";
 import store from "./store";
 import i18n from "./i18n/i18n";
 import config from "./config/config";
+import { intersection } from "./util/array-util";
+// import * as Sentry from "@sentry/browser";
 
 import "vue-material-design-icons/styles.css";
 import "highlight.js/styles/github-gist.css";
+import "@molit/fhir-components/dist/@molit/fhir-components.css";
 
 Vue.config.productionTip = false;
 
@@ -24,15 +27,35 @@ Vue.use(VueClipboard);
 window.adapter = adapter;
 
 router.beforeEach((to, from, next) => {
-  let keycloak = store.state.authentication.keycloak;
-  if (to.meta.requiresAuth) {
-    if (!keycloak.authenticated) {
-      keycloak.login();
-      return;
+  //Shows login if authentication is set to true in config
+  if (config.AUTHENTICATION) {
+    const keycloak = store.state.authentication.keycloak;
+    if (to.meta.requiresAuth) {
+      // Check if user is logged in
+      if (!keycloak.authenticated) {
+        keycloak.login();
+        return;
+      }
+
+      // Check roles of user
+      if (!intersection(keycloak.realmAccess.roles, to.meta.roles).length) {
+        next({ name: "404" });
+      }
     }
   }
+
   next();
 });
+
+// Sentry.init({
+//   dsn: "https://50bc0a9023ae43ef828244047d719f08@sentry.molit.eu/4",
+//   integrations: [
+//     new Sentry.Integrations.Vue({
+//       Vue,
+//       attachProps: false
+//     })
+//   ]
+// });
 
 let initializeVue = function() {
   new Vue({
@@ -46,7 +69,10 @@ let initializeVue = function() {
 let initialize = async function() {
   try {
     if (config.AUTHENTICATION) {
-      await store.dispatch("INIT_KEYCLOAK");
+      const authenticated = await store.dispatch("INIT_KEYCLOAK");
+      if (authenticated) {
+        await store.dispatch("getConferenceSettings", { token: store.state.authentication.keycloak.token });
+      }
     }
     initializeVue();
   } catch (e) {

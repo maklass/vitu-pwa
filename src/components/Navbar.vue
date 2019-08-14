@@ -1,27 +1,30 @@
 <template>
-  <b-navbar toggleable="md" type="light">
-    <b-navbar-toggle target="nav_collapse"></b-navbar-toggle>
+  <b-navbar toggleable="md" type="light" fixed="top">
     <b-navbar-brand :to="{ name: 'home' }">
-      <img src="../assets/logo/VITU_72ppi.png" class="d-inline-block align-top vitu-logo" height="42" alt="VITU Logo" />
+      <img src="../assets/logo/VITU_72ppi.png" class="d-inline-block align-top vitu-logo" height="38" alt="VITU Logo" />
     </b-navbar-brand>
+    <b-navbar-toggle target="nav_collapse"></b-navbar-toggle>
     <b-collapse is-nav id="nav_collapse">
       <b-navbar-nav>
-        <b-nav-item :to="{ name: 'home' }" exact-active-class="active">{{ $t("home.home") }}</b-nav-item>
-        <b-nav-item :to="{ name: 'worklist' }" exact-active-class="active">{{ $tc("worklist.worklist", 1) }}</b-nav-item>
-        <b-nav-item :to="{ name: 'planner' }" exact-active-class="active">{{ $tc("planner.conferencePlanner", 1) }}</b-nav-item>
-        <b-nav-item :to="{ name: 'conference' }" exact-active-class="active">{{ $tc("conference.videoConference", 1) }}</b-nav-item>
-        <b-nav-item :to="{ name: 'documentation' }" exact-active-class="active">{{ $tc("documentation.documentation", 1) }}</b-nav-item>
+        <b-nav-item :to="{ name: 'home' }">{{ $t("home.home") }}</b-nav-item>
+        <b-nav-item v-if="isModerator || isAdmin" :to="{ name: 'worklist' }">{{ $tc("worklist.worklist", 1) }}</b-nav-item>
+        <b-nav-item v-if="isModerator || isAdmin" :to="{ name: 'planner' }">{{ $tc("planner.conferencePlanner", 1) }}</b-nav-item>
+        <b-nav-item :to="{ name: 'conference-overview' }">{{ $tc("conference.videoConference", 1) }}</b-nav-item>
+        <b-nav-item v-if="isModerator || isAdmin" :disabled="deactivateDocumentation" :to="{ name: 'documentation-overview' }">{{ $tc("documentation.documentation", 1) }}</b-nav-item>
       </b-navbar-nav>
       <b-navbar-nav class="ml-auto">
+        <b-nav-item v-if="isAdmin" :to="{ name: 'admin' }" active-class="active"><wrench-icon /></b-nav-item>
         <locale-switcher />
         <b-nav-item-dropdown right class="dropdown-user">
-          <!-- Using button-content slot -->
           <template slot="button-content">
             <account-circle-icon class="account-icon" />
           </template>
-          <b-dropdown-header v-if="keycloak.idTokenParsed">{{ fullUserName }}</b-dropdown-header>
+          <b-dropdown-header v-if="keycloak && keycloak.idTokenParsed">
+            <div>{{ fullUserName }}</div>
+            <div v-if="isModerator">- {{ $t("roles.moderator") }}</div>
+            <div v-if="isAdmin">- {{ $t("roles.administrator") }}</div>
+          </b-dropdown-header>
           <b-dropdown-divider />
-          <!-- <b-dropdown-item href="#">{{$t('navbar.profile')}}</b-dropdown-item> -->
           <b-dropdown-item @click="logout()">{{ $t("navbar.signOut") }}</b-dropdown-item>
         </b-nav-item-dropdown>
       </b-navbar-nav>
@@ -30,17 +33,47 @@
 </template>
 
 <script>
-import LocaleSwitcher from "@/components/LocaleSwitcher";
 import AccountCircleIcon from "vue-material-design-icons/AccountCircle";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
+import WrenchIcon from "vue-material-design-icons/Wrench";
 import config from "../config/config";
+import roles from "../model/roles";
+
+import { mapState } from "vuex";
 
 export default {
   computed: {
-    keycloak() {
-      return this.$store.state.authentication.keycloak;
-    },
+    ...mapState({
+      keycloak: state => state.authentication.keycloak,
+      roles: state => state.authentication.keycloak.realmAccess.roles
+    }),
+
     fullUserName() {
-      return this.keycloak.idTokenParsed.name;
+      if (this.keycloak) {
+        return this.keycloak.idTokenParsed.name;
+      } else {
+        return "";
+      }
+    },
+
+    isAdmin() {
+      if (this.keycloak) {
+        return this.keycloak.hasRealmRole(roles.ADMINISTRATOR);
+      } else {
+        return false;
+      }
+    },
+
+    deactivateDocumentation() {
+      return config.DEACTIVATE_DOCUMENTATION;
+    },
+
+    isModerator() {
+      if (this.keycloak) {
+        return this.keycloak.hasRealmRole(roles.MODERATOR);
+      } else {
+        return false;
+      }
     }
   },
 
@@ -53,8 +86,9 @@ export default {
   },
 
   components: {
+    AccountCircleIcon,
     LocaleSwitcher,
-    AccountCircleIcon
+    WrenchIcon
   }
 };
 </script>
@@ -62,6 +96,8 @@ export default {
 <style lang="scss" scoped>
 .navbar {
   background: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  height: 66px;
 }
 
 .account-icon {

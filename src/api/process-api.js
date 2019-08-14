@@ -1,57 +1,63 @@
-import axios from "axios";
 import config from "../config/config";
+import { get, post, put, remove } from "./base-api";
 
 const urlEntry = `${config.VITU_PROCESS_URL}/entry/`;
-const urlStatus = `${config.VITU_PROCESS_URL}/status`;
+const urlStatus = `${config.VITU_PROCESS_URL}/status/`;
 
-export function fetchStatuses(params = {}, token) {
-  const headers = {
-    Accept: "application/json"
-  };
+/**
+ * Fetches all statuses from the backend.
+ *
+ * @param {Object} [params] - query params
+ * @param {string} [token] - the authentication token
+ * @returns {Promise} - the web service response as Promise
+ */
+export const getStatuses = (params = {}, token) => {
+  return get(urlStatus, params, token);
+};
 
-  if (token) {
-    headers.Authorization = "Bearer " + token;
+/**
+ * Fetches the status with the given id.
+ *
+ * @param {String} id - the id of the status to fetch
+ * @param {String} [token] - the authentication token
+ * @returns {Promise} - the web service response as Promise
+ */
+export const getStatusById = (id, token) => {
+  return get(`${urlStatus}${id}`, {}, token);
+};
+
+/**
+ * Addes an existing entry to an existing conference.
+ *
+ * @param {Number} tumorConferenceId - the tumor conference id
+ * @param {Object} entry - the entry
+ * @param {String} token - the token
+ * @returns {Promise} the response as promise
+ */
+export const addEntryToConference = (tumorConferenceId, entry, token) => {
+  const url = `${urlEntry}tumorConference/${tumorConferenceId}/entry`;
+  return post(url, entry, token);
+};
+
+export const updateStatus = (status, token) => {
+  if (!status || !status.id) {
+    throw new Error("Status or status id was null or undefined");
   }
+  return put(`${urlStatus}${status.id}`, status, token);
+};
 
-  const options = {
-    params,
-    headers
-  };
-
-  return axios.get(urlStatus, options);
-}
-
-export function fetchEntries(params = {}, token) {
-  const headers = {
-    Accept: "application/json"
-  };
-
-  if (token) {
-    headers.Authorization = "Bearer " + token;
+export const updateStatusesBatch = (statuses, token) => {
+  if (!statuses) {
+    throw new Error("Status or status id was null or undefined");
   }
+  return put(`${urlStatus}$batch`, statuses, token);
+};
 
-  const options = {
-    params,
-    headers
-  };
+export const fetchEntries = (params = {}, token) => {
+  return get(urlEntry, params, token);
+};
 
-  return axios.get(urlEntry, options);
-}
-
-export function addEntry(orbisCaseNo, orbisPID, patientFirstname, patientLastname, diagnoseOfTumor, patientDateOfBirth, patientSex, status, vituID, token) {
-  const headers = {
-    Accept: "application/json",
-    Content: "application/json"
-  };
-
-  if (token) {
-    headers.Authorization = "Bearer " + token;
-  }
-
-  const options = {
-    headers
-  };
-
+export const addEntry = (orbisCaseNo, orbisPID, patientFirstname, patientLastname, diagnoseOfTumor, patientDateOfBirth, patientSex, status, vituID, token) => {
   const resource = {
     orbisCaseNo,
     orbisPID,
@@ -64,28 +70,17 @@ export function addEntry(orbisCaseNo, orbisPID, patientFirstname, patientLastnam
     vituID
   };
 
-  return axios.post(urlEntry, resource, options);
-}
+  return post(urlEntry, resource, token);
+};
+
+export const deleteEntry = (entryId, token) => {
+  return remove(`${urlEntry}${entryId}`, {}, token);
+};
 
 export function updateEntry(entry, token) {
   if (!entry || !entry.id) {
     throw new Error();
   }
 
-  const headers = {
-    Accept: "application/json",
-    Content: "application/json"
-  };
-
-  if (token) {
-    headers.Authorization = "Bearer " + token;
-  }
-
-  const options = {
-    headers
-  };
-
-  const url = `${urlEntry}${entry.id}`;
-
-  return axios.put(url, entry, options);
+  return put(`${urlEntry}${entry.id}`, entry, token);
 }

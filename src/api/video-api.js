@@ -1,9 +1,14 @@
 import config from "../config/config";
-import { get, post } from "./base-api";
+import { get, post, put, remove } from "./base-api";
 
-const URL_ICE_SERVERS = `${config.VIDEO_BACKEND_URL}/ice-servers`;
 const URL_ROOMS = `${config.VIDEO_BACKEND_URL}/admin/video-room`;
+const URL_ROOMS_BATCH = `${config.VIDEO_BACKEND_URL}/admin/video-room/$batch`;
+const URL_SETTINGS = `${config.VIDEO_BACKEND_URL}/admin/settings`;
+const URL_ICE_SERVERS = `${config.VIDEO_BACKEND_URL}/ice-servers`;
 const URL_ROOM_ACCESS_TOKEN = `${config.VIDEO_BACKEND_URL}/video-room/token`;
+const URL_ROOM_ADHOC = `${config.VIDEO_BACKEND_URL}/video-room/adhoc`;
+const URL_ROOM_ADHOC_ADD = `${config.VIDEO_BACKEND_URL}/video-room/adhoc/add`;
+const URL_ROOM_ACCESSIBLE = `${config.VIDEO_BACKEND_URL}/video-room/accessible`;
 
 /**
  * Fetches ICE servers
@@ -37,21 +42,89 @@ export const addRoom = (description, date, token) => {
   );
 };
 
-/**
- * Addes an existing entry to an existing conference.
- *
- * @param {Number} roomId - the conference id
- * @param {Object} entry - the entry
- * @param {String} token - the token
- * @returns {Promise} the response as promise
- */
-export const addEntryToConference = (roomId, entry, token) => {
-  const url = `${URL_ROOMS}/${roomId}/entry`;
-  return post(url, entry, token);
+export const addRoomBatch = (description, date, token) => {
+  return post(
+    URL_ROOMS_BATCH,
+    {
+      description,
+      tumorConference: {
+        description,
+        date,
+        entries: []
+      }
+    },
+    token
+  );
 };
 
 /**
- * Adds 1 or more participants to the conference with the given id.
+ * Removes a room permanently.
+ *
+ * @param {Number} roomId - the room id
+ * @param {String} token - the authentication token
+ */
+export const deleteRoom = (roomId, token) => {
+  if (!roomId) {
+    throw new Error("Room id not specified");
+  }
+
+  const url = `${URL_ROOMS}/${roomId}`;
+  const request = {
+    room: roomId
+  };
+
+  return remove(url, request, token);
+};
+
+/**
+ * Gets all participants that are allowed to join a room.
+ *
+ * @param {Number} roomId - the room id
+ * @param {String} token - the authentication token
+ * @retorns {Promise} the response as promise
+ */
+export const getParticipantsInRoom = (roomId, token) => {
+  if (!roomId) {
+    throw new Error("Room id not specified");
+  }
+
+  const url = `${URL_ROOMS}/${roomId}/participants`;
+  return get(url, {}, token);
+};
+
+/**
+ * Removes one or more participants from the room with the given roomId.
+ *
+ * @param {Number} roomId - the room id
+ * @param {String|Array} participants - the ids of the participants to remove
+ * @param {String} token - the authentication token
+ * @returns {Promise} the response as promise
+ */
+export const deleteParticipantsFromRoom = (roomId, participants, token) => {
+  if (!roomId) {
+    throw new Error("Room id not specified");
+  }
+  if (!participants) {
+    throw new Error("No participants specified");
+  }
+
+  if (!Array.isArray(participants)) {
+    participants = [participants];
+  }
+
+  const url = `${URL_ROOMS}/${roomId}/participants`;
+  const request = {
+    action: "REMOVE",
+    allowed: participants,
+    room: roomId,
+    request: "allowed"
+  };
+
+  return remove(url, request, token);
+};
+
+/**
+ * Adds one or more participants to the room with the given id.
  *
  * @param {Number} roomId - the room id
  * @param {String|Array} participants - the ids of the participants to add
@@ -107,9 +180,62 @@ export const getAccessTokenForRoom = (roomId, token) => {
 /**
  * Fetch all existing rooms.
  *
- * @param {String} token - the token
+ * @param {String} token - the authentication token
+ * @param {Number} [size] - the number of resources to be fetched
+ * @param {oage} [page] - the page
  * @returns {Promise} the response as promise
  */
-export const getRooms = token => {
-  return get(URL_ROOMS, {}, token);
+export const getRooms = (token, size = 1000, page = 1) => {
+  return get(URL_ROOMS, { size, page }, token);
+};
+
+/**
+ * Fetches the conference settings.
+ *
+ * @param {String} token - the authentication token
+ * @returns {Promise} the response as promise
+ */
+export const getConferenceSettings = token => {
+  return get(URL_SETTINGS, {}, token);
+};
+
+/**
+ * Updates the conference settings.
+ *
+ * @param {Object} settings - the settings
+ * @param {String} token - the authentication token
+ * @returns {Promise} the response as promise
+ */
+export const updateConferenceSettings = (settings, token) => {
+  return put(URL_SETTINGS, settings, token);
+};
+
+/**
+ * Returns the adhoc room. The adhoc room will be created on the server, if it does not exist.
+ *
+ * @param {String} token - the authentication token
+ * @returns {Promise} the response as promise
+ */
+export const getAdhocRoom = token => {
+  return post(URL_ROOM_ADHOC, {}, token);
+};
+
+/**
+ * Adds the user referenced in the <code>token</token> to the adhoc room.
+ *
+ * @param {String} token - the authentication token
+ * @returns {Promise} the response as promise
+ */
+export const addUserToAdhocRoomByToken = token => {
+  return post(URL_ROOM_ADHOC_ADD, {}, token);
+};
+
+/**
+ * Returns all rooms that are accessible by the user referenced in the authentication token.
+ *
+ * @param {String} token - the authentication token
+ * @returns {Promise} the response as promise
+ */
+export const getRoomsAccessible = token => {
+  return get(URL_ROOM_ACCESSIBLE, {}, token);
 };

@@ -6,7 +6,7 @@
           <div class="video-loading" v-if="participant.loading">
             <div>Loading...</div>
           </div>
-          <video-stream class="video" :stream="participant.stream" :mirrored="mirrored" :muted="muted" />
+          <video-stream class="video" :stream="participant.stream" :mirrored="mirrored" :muted="muted" ref="videoConferenceItem" :style="{ 'object-fit': cutVideoStreams ? 'cover' : '' }" />
         </div>
         <div v-if="debugInformation && participant.stream" class="debug-information" @click="toggleDebugInformation"></div>
       </div>
@@ -14,7 +14,7 @@
         <div class="video-loading" v-if="participant.loading">
           <div>Loading...</div>
         </div>
-        <video-stream class="video-fullscreen" :stream="participant.stream" :mirrored="mirrored" :muted="muted" />
+        <video-stream class="video-fullscreen" :stream="participant.stream" :mirrored="mirrored" :muted="muted" ref="videoConferenceItem" />
       </div>
       <div class="card-footer video-menu">
         <div class="caption">{{ participant.caption }}</div>
@@ -39,6 +39,9 @@
           <network-strength3-icon class="network-strength-icon" v-else-if="parseInt(this.participant.pluginHandle.getBitrate()) <= 500 && parseInt(this.participant.pluginHandle.getBitrate()) > 400" />
           <network-strength4-icon class="network-strength-icon" v-else-if="parseInt(this.participant.pluginHandle.getBitrate()) > 500" />
         </div>
+        <div class="toggle-link" @click="toggleFullScreen" v-if="!participant.local">
+          <full-screen-icon></full-screen-icon>
+        </div>
       </div>
     </div>
   </div>
@@ -54,11 +57,13 @@ import VolumeOffIcon from "vue-material-design-icons/VolumeOff";
 import VolumeLowIcon from "vue-material-design-icons/VolumeLow";
 import VolumeHighIcon from "vue-material-design-icons/VolumeHigh";
 import NetworkStrength1AlertIcon from "vue-material-design-icons/NetworkStrength1Alert";
+import FullScreenIcon from "vue-material-design-icons/Fullscreen";
 import NetworkStrength1Icon from "vue-material-design-icons/NetworkStrength1";
 import NetworkStrength2Icon from "vue-material-design-icons/NetworkStrength2";
 import NetworkStrength3Icon from "vue-material-design-icons/NetworkStrength3";
 import NetworkStrength4Icon from "vue-material-design-icons/NetworkStrength4";
 import { Participant } from "../../model/Participant";
+import { toggleFullScreen } from "@/util/dom-util";
 
 export default {
   name: "VideoConferenceItem",
@@ -68,14 +73,17 @@ export default {
       type: Participant,
       required: true
     },
+
     muted: {
       type: Boolean,
       default: false
     },
+
     mirrored: {
       type: Boolean,
       default: false
     },
+
     ratioX: {
       type: Number,
       default: 16,
@@ -83,14 +91,22 @@ export default {
         return value !== 0;
       }
     },
+
     ratioY: {
       type: Number,
       default: 10
     },
+
+    cutVideoStreams: {
+      type: Boolean,
+      default: true
+    },
+
     threeD: {
       type: Boolean,
       default: false
     },
+
     fullScreen: {
       type: Boolean,
       default: false
@@ -115,6 +131,10 @@ export default {
   },
 
   methods: {
+    toggleFullScreen() {
+      toggleFullScreen(this.$refs.videoConferenceItem);
+    },
+
     toggleDebugInformation() {
       this.debugInformation = !this.debugInformation;
     },
@@ -162,6 +182,7 @@ export default {
     MicrophoneIcon,
     MicrophoneOffIcon,
     VolumeOffIcon,
+    FullScreenIcon,
     VolumeLowIcon,
     VolumeHighIcon,
     NetworkStrength1AlertIcon,
@@ -190,9 +211,9 @@ export default {
     left: 0;
     right: 0;
     bottom: 0;
+    background: black;
 
     .video {
-      object-fit: cover;
       width: 100%;
       height: 100%;
     }
@@ -221,7 +242,7 @@ export default {
   background: $vitu-dark-grey;
   display: flex;
   align-items: center;
-  padding: 0.2rem 1rem;
+  padding: 0 0.6rem;
 }
 
 .hidden {

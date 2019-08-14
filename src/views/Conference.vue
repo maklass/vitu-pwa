@@ -1,120 +1,165 @@
 <template>
-  <div class="conference">
-    <Navbar />
-    <b-container fluid>
-      <main>
-        <div v-if="!showVideoConference">
-          <b-form-group>
-            <b-form-input :placeholder="$t('planner.searchConference')"></b-form-input>
-          </b-form-group>
-          <div>
-            <spinner v-if="!rooms || loadingDemo" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" :message="$t('data.loading')" />
-            <div v-else class="conferences">
-              <b-card no-body v-for="conference in filteredRooms" :key="conference.room" class="conference-card" @click="goToVideoConference(conference.tumorConference.entries)">
-                <div class="headline text-muted">
-                  {{ conference.tumorConference.description }}
-                  <br />
-                  {{ $d(new Date(conference.tumorConference.date), "long") }}
-                </div>
-                <div class="spacer" />
-                <div class="conference-card-footer">
-                  <div class="cases">
-                    <span class="count">{{ conference.tumorConference.entries.length }}</span>
-                    <br />
-                    {{ $tc("planner.casesAssigned", conference.tumorConference.entries.length) }}
-                  </div>
-                </div>
-              </b-card>
+  <div>
+    <notification-panels :showError="error" :errorMessage="error" :showSuccess="false" :fluid="true" />
+    <div class="conference">
+      <div v-if="!showVideoConference" class="container">
+        <div v-if="loading && !error">
+          <spinner line-fg-color="#148898" line-bg-color="#99bfbf" size="large" :speed="1.5" />
+          <div class="loading-information">{{ $t("conference.initializing") }}..</div>
+        </div>
+        <div class="card-wrapper" v-if="!loading">
+          <div class="card" v-if="!error">
+            <div class="card-body">
+              <h5 class="card-title">{{ roomName }}</h5>
+              <h6 v-if="roomDate && conferenceSettings.showDateTimeInTitle" class="card-subtitle mb-2 text-muted">{{ $d(new Date(roomDate), "long") }}</h6>
+              <!-- <h6 class="card-subtitle mb-2 text-muted">{{ $t("conference.roomNumber") }}: {{ roomId }}</h6> -->
+              <p class="card-text">
+                {{ $t("conference.tutorial") }}
+              </p>
+              <button class="btn btn-primary" @click="goToConference">{{ $t("conference.enterConference") }}</button>
+            </div>
+          </div>
+          <div class="card" v-if="error">
+            <div class="card-body">
+              <h5 class="card-title">{{ roomName }}</h5>
+              <h6 v-if="roomDate && conferenceSettings.showDateTimeInTitle" class="card-subtitle mb-2 text-muted">{{ $d(new Date(roomDate), "long") }}</h6>
+              <p class="card-text">
+                {{ $t("conference.notAllowed") }}
+              </p>
+              <router-link tag="button" class="btn btn-primary" :to="{ name: 'conference-overview' }">{{ $t("conference.backToOverview") }}</router-link>
             </div>
           </div>
         </div>
-        <div class="conference-center" v-else>
-          <div :style="{ flex: currentView === VIEWS.CONFERENCE ? '1' : 'initial' }">
-            <video-conference :threeD="threeD" :entries="entries" />
-          </div>
-          <div class="presentation" v-if="currentView === VIEWS.PRESENTATION && currentCase">
-            <h6>{{ $t("conference.presentation") }}</h6>
-            <div v-if="currentResource" style="border: lightgrey 1px solid">
-              <div v-if="currentResource.resourceType === 'DiagnosticReport'">
-                <diagnostic-report style="background: white;" :resource="currentResource" />
-              </div>
-              <div v-if="currentResource.resourceType === 'Procedure'">
-                <procedure style="background: white;" :resource="currentResource" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    </b-container>
+      </div>
+      <div v-if="showVideoConference" class="container-fluid">
+        <video-conference
+          :showEntries="showEntries"
+          :entries="entries"
+          :ratioX="ratioX"
+          :ratioY="ratioY"
+          :cutVideoStreams="conferenceSettings.cutVideoStreams"
+          :bitrate="conferenceSettings.bitrate"
+          :room="roomId"
+          :roomToken="roomToken"
+          :roomName="roomName"
+          :roomDate="roomDate"
+          :showRoomDate="conferenceSettings.showDateTimeInTitle"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import Navbar from "@/components/Navbar";
+import NotificationPanels from "@/components/ui/NotificationPanels";
 import VideoConference from "@/components/video-conference/VideoConference";
-import CaseNotes from "@/components/CaseNotes";
-import draggable from "vuedraggable";
-import { mapState } from "vuex";
-import { getRooms, addRoom, addParticipantsToRoom } from "../api/video-api";
-import DiagnosticReport from "@/components/fhir/DiagnosticReport";
-import Procedure from "@/components/fhir/Procedure";
+import config from "@/config/config";
+import { addRoom, addParticipantsToRoom, getAdhocRoom, addUserToAdhocRoomByToken, getRoomsAccessible, getAccessTokenForRoom } from "@/api/video-api";
+import { handleAxiosError } from "@/util/error-util";
+
 import Spinner from "vue-simple-spinner";
-import config from "../config/config";
+import { mapState } from "vuex";
 
 export default {
   data() {
     return {
-      currentView: 1,
-      VIEWS: Object.freeze({ CONFERENCE: 1, PRESENTATION: 2 }),
-      currentCaseNumber: -1,
-      currentResource: null,
-      threeD: false,
+      loading: true,
+      entries: [],
+      error: null,
+      roomId: null,
+      roomName: null,
+      roomDate: null,
+      roomToken: null,
       showVideoConference: false,
-      loadingDemo: false,
-      rooms: null,
-      entries: []
+      showEntries: true,
+      rooms: null
     };
   },
 
   computed: {
     ...mapState({
-      token: state => state.authentication.keycloak.token
+      token: state => state.authentication.keycloak.token,
+      conferenceSettings: state => state.settings.conferenceSettings
     }),
-
-    filteredRooms() {
-      if (!this.rooms || !this.demo) {
-        return this.rooms;
-      } else {
-        return this.rooms.filter(room => room.tumorConference.description !== "Demo");
-      }
-    },
 
     demo() {
       return config.DEMO;
+    },
+
+    ratioX() {
+      if (this.conferenceSettings && this.conferenceSettings.aspectRatio && typeof this.conferenceSettings.aspectRatio === "string") {
+        let ratioX = this.conferenceSettings.aspectRatio.split(":")[0];
+        if (ratioX && parseInt(ratioX)) {
+          return parseInt(ratioX);
+        }
+      }
+      return 16;
+    },
+
+    ratioY() {
+      if (this.conferenceSettings && this.conferenceSettings.aspectRatio && typeof this.conferenceSettings.aspectRatio === "string") {
+        let ratioY = this.conferenceSettings.aspectRatio.split(":")[1];
+        if (ratioY && parseInt(ratioY)) {
+          return parseInt(ratioY);
+        }
+      }
+      return 10;
     }
   },
 
   methods: {
-    toggleThreeD() {
-      this.threeD = !this.threeD;
+    handleError(error) {
+      this.error = handleAxiosError(error, this);
+      this.loading = false;
+      window.scrollTo(0, 0);
     },
 
-    switchView(view) {
-      this.currentView = view;
+    async loadAdhocConference() {
+      try {
+        this.roomName = this.conferenceSettings.persistentRoomName;
+        this.showEntries = false;
+        this.roomId = (await getAdhocRoom(this.token)).data.room;
+        await addUserToAdhocRoomByToken(this.token);
+        this.roomToken = (await getAccessTokenForRoom(this.roomId, this.token)).data.token;
+        this.loading = false;
+      } catch (e) {
+        this.handleError(e);
+      }
     },
 
-    setCurrentResource(currentResource) {
-      this.currentResource = currentResource;
+    async loadVideoConference() {
+      try {
+        this.roomId = parseInt(this.$route.params.room);
+        this.rooms = (await getRoomsAccessible(this.token)).data.entity;
+        const currentRoom = this.rooms.find(room => room.janusId === this.roomId);
+        if (currentRoom && currentRoom.tumorConference) {
+          this.roomName = currentRoom.tumorConference.description;
+          this.roomDate = currentRoom.tumorConference.date;
+          this.entries = currentRoom.tumorConference.entries;
+        }
+        this.roomToken = (await getAccessTokenForRoom(this.roomId, this.token)).data.token;
+        this.loading = false;
+      } catch (e) {
+        this.handleError(e);
+      }
     },
 
-    nextCase() {
-      this.currentCaseNumber++;
-      this.currentCaseNumber = this.currentCaseNumber % this.cases.length;
-    },
+    async goToVideoConference(conference) {
+      let entries = conference.tumorConference.entries;
 
-    goToVideoConference(entries) {
       if (!this.demo) {
         this.entries = entries;
+        const participants = [
+          "e2e25d6d-0281-4b29-a022-fd8a05d29fb4",
+          "34cc73df-63e8-46d9-93bf-5586f8340976",
+          "088b694b-9fba-4999-b57e-14a70738dd56",
+          "e1eaa4be-ef25-4dbe-88ab-c13751e43ab1",
+          "7b65fb08-b33a-4c91-9f1d-127927cd0cb0",
+          "fb7aceab-b5d3-431c-a523-96abbe0ac99c",
+          "e00a58a3-d721-4de4-b026-b0c2d23e11a3"
+        ];
+        await addParticipantsToRoom(conference.janusId, participants, this.token);
+        this.$router.push({ name: "conference", params: { room: conference.janusId } });
         this.showVideoConference = true;
       } else {
         this.goToDemoConference();
@@ -123,23 +168,36 @@ export default {
 
     async goToDemoConference() {
       this.loadingDemo = true;
-      const responseRoom = await addRoom("Demo");
+      const responseRoom = await addRoom("Demo", new Date(), this.token);
       const janusId = responseRoom.data.janusId;
-      const participants = [""];
+      const participants = [
+        "e2e25d6d-0281-4b29-a022-fd8a05d29fb4",
+        "34cc73df-63e8-46d9-93bf-5586f8340976",
+        "088b694b-9fba-4999-b57e-14a70738dd56",
+        "e1eaa4be-ef25-4dbe-88ab-c13751e43ab1",
+        "7b65fb08-b33a-4c91-9f1d-127927cd0cb0",
+        "fb7aceab-b5d3-431c-a523-96abbe0ac99c",
+        "e00a58a3-d721-4de4-b026-b0c2d23e11a3"
+      ];
       await addParticipantsToRoom(janusId, participants, this.token);
       this.$router.push({ name: "conference", params: { room: janusId } });
       this.showVideoConference = true;
       this.loadingDemo = false;
     },
 
+    goToConference() {
+      this.showVideoConference = true;
+    },
+
     async initialize() {
       if (this.$route.params.room) {
-        this.showVideoConference = true;
-      } else {
-        let response = await getRooms(this.token);
-        if (response.status === 200) {
-          this.rooms = response.data;
+        if (this.$route.params.room === "adhoc") {
+          this.loadAdhocConference();
+        } else {
+          await this.loadVideoConference();
         }
+      } else {
+        this.$router.push({ name: "conference-overview" });
       }
     }
   },
@@ -149,138 +207,35 @@ export default {
   },
 
   components: {
-    CaseNotes,
-    DiagnosticReport,
-    draggable,
-    Navbar,
-    Procedure,
     Spinner,
+    NotificationPanels,
     VideoConference
   }
 };
 </script>
 
-<style lang="scss">
-h3 {
-  color: map-get($theme-colors, "primary");
-}
-
-h4 {
-  color: $vitu-blue;
-}
-</style>
-
 <style lang="scss" scoped>
-.container-fluid {
-  padding-top: 15px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
 .conference {
-  min-height: 100vh;
+  padding-top: 15px;
+}
+
+.card-wrapper {
   display: flex;
-  flex-direction: column;
-}
+  justify-content: center;
 
-.conference-center {
-  display: flex;
-}
+  .card {
+    max-width: 32rem;
 
-.group-item {
-  margin: 0.125rem 0;
-  padding: 0.75rem;
-  user-select: none;
-  cursor: move;
-
-  h6 {
-    color: $vitu-blue;
-  }
-}
-
-.group-item.active {
-  h6 {
-    color: white;
-  }
-}
-
-header {
-  display: flex;
-  flex-direction: column;
-}
-
-.menu {
-  padding: 1rem 0;
-}
-
-main {
-  flex: 1;
-}
-
-footer {
-  margin-top: 15px;
-}
-
-.presentation {
-  flex: 1;
-  padding: 0 15px;
-}
-
-.conferences {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15em, 1fr));
-  grid-gap: 0.25rem;
-}
-
-.group-item {
-  margin: 0.125rem 0;
-  padding: 0.5rem;
-  user-select: none;
-  cursor: move;
-}
-
-.conference-card {
-  display: flex;
-  flex-direction: column;
-  padding: 0.5rem;
-  cursor: pointer;
-
-  .icon {
-    color: map-get($theme-colors, "primary");
-    font-size: 2.25rem;
-  }
-}
-
-.headline {
-  font-weight: bold;
-  color: map-get($theme-colors, "primary");
-}
-
-.conference-card-footer {
-  display: flex;
-
-  .icon {
-    align-self: flex-end;
-    font-size: 1.5rem;
-  }
-
-  .cases {
-    text-align: right;
-    flex: 1;
-
-    color: map-get($theme-colors, "primary");
-    .count {
-      font-size: 1.5rem;
-      font-weight: bold;
+    .card-title {
+      color: $vitu-green;
     }
   }
 }
 
-@media (min-width: 576px) {
-  .sidebar {
-    width: 240px;
-    grid-template-columns: 1fr;
-  }
+.loading-information {
+  display: flex;
+  justify-content: center;
+  padding-top: 15px;
+  font-size: 1.2rem;
 }
 </style>

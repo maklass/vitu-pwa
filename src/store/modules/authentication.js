@@ -1,8 +1,14 @@
 import Keycloak from "keycloak-js";
-import config from "../../config/config";
+import config from "@/config/config";
 
 export const SET_KEYCLOAK = "SET_KEYCLOAK";
 export const INIT_KEYCLOAK = "INIT_KEYCLOAK";
+
+const initOptions = {
+  url: config.KEYCLOAK_URL,
+  realm: config.KEYCLOAK_REALM,
+  clientId: config.KEYCLOAK_CLIENT_ID
+};
 
 const state = {
   keycloak: null
@@ -16,11 +22,7 @@ const mutations = {
 
 const actions = {
   [INIT_KEYCLOAK]({ commit }) {
-    let keycloak = Keycloak({
-      url: config.KEYCLOAK_URL,
-      realm: config.KEYCLOAK_REALM,
-      clientId: config.KEYCLOAK_CLIENT_ID
-    });
+    let keycloak = Keycloak(initOptions);
     return new Promise((resolve, reject) => {
       keycloak
         .init({ onLoad: "check-sso" })

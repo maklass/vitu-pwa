@@ -29,7 +29,9 @@ export default {
 
 <style lang="scss" scoped>
 .card {
-  box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2), 0 12px 40px 0 rgba(0, 0, 0, 0.19);
+  // box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2), 0 12px 40px 0 rgba(0, 0, 0, 0.19);
+  box-shadow: initial;
+  border: initial;
 }
 
 .link:hover {

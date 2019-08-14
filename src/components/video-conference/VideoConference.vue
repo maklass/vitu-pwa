@@ -1,5 +1,6 @@
 <template>
   <div>
+    <div class="consent-dialog" v-if="consentDialogScreen"></div>
     <div class="conference">
       <div class="main-panel">
         <div v-if="demo" class="info-box">
@@ -7,29 +8,31 @@
             <a :href="url" place="url">{{ url }}</a>
           </i18n>
         </div>
+        <h4 class="title" v-if="roomName">
+          {{ roomName }}<span v-if="roomDate && showRoomDate"> - {{ $d(new Date(roomDate), "long") }}</span>
+        </h4>
         <div class="video-conference-container">
           <div :class="[{ 'video-conference': !fullScreenParticipant }]" :style="[{ width: fullScreenParticipant ? '200px' : '', flex: !fullScreenParticipant ? 1 : '' }]" v-if="!localScreenShared">
-            <video-conference-item v-if="localParticipant && !localScreenShared" :mirrored="true" :muted="true" :participant="localParticipant" />
-            <video-conference-item v-for="remoteParticipant in filteredRemoteParticipants" :key="remoteParticipant.id" :participant="remoteParticipant" />
+            <video-conference-item v-if="localParticipant && !localScreenShared" :mirrored="true" :muted="true" :participant="localParticipant" :ratioX="ratioX" :ratioY="ratioY" :cutVideoStreams="cutVideoStreams" />
+            <video-conference-item v-for="remoteParticipant in filteredRemoteParticipants" :key="remoteParticipant.id" :participant="remoteParticipant" :ratioX="ratioX" :ratioY="ratioY" :cutVideoStreams="cutVideoStreams" />
           </div>
           <div class="fullscreen-element" v-if="fullScreenParticipant">
             <video-conference-item :mirrored="false" :muted="true" :fullScreen="true" :participant="fullScreenParticipant" />
           </div>
         </div>
       </div>
-      <control-panel class="control-panel" @shareScreen="shareScreen" @unshareScreen="unshareScreen" :entries="entries" v-if="room" :room="room" />
+      <control-panel class="control-panel" @shareScreen="shareScreen" @unshareScreen="unshareScreen" @leave="goToHome" :showEntries="showEntries" :entries="entries" v-if="room" :room="room" :consentDialogScreen="consentDialogScreen" />
     </div>
   </div>
 </template>
 
 <script>
-import { mapState } from "vuex";
 import Janus from "../../assets/js/janus.js";
 import ControlPanel from "../ControlPanel";
 import VideoConferenceItem from "./VideoConferenceItem";
-import { Participant, LocalParticipant } from "./../../model/Participant";
-import { getAccessTokenForRoom } from "../../api/video-api";
 import config from "./../../config/config";
+import { Participant, LocalParticipant } from "./../../model/Participant";
+import { mapState } from "vuex";
 
 export default {
   props: {
@@ -38,6 +41,56 @@ export default {
       default() {
         return [];
       }
+    },
+
+    showEntries: {
+      type: Boolean,
+      default: true
+    },
+
+    roomToken: {
+      type: String,
+      required: true
+    },
+
+    ratioX: {
+      type: Number,
+      default: 16,
+      validator(value) {
+        return value !== 0;
+      }
+    },
+
+    ratioY: {
+      type: Number,
+      default: 10
+    },
+
+    bitrate: {
+      type: Number,
+      default: 500
+    },
+
+    cutVideoStreams: {
+      type: Boolean,
+      default: true
+    },
+
+    room: {
+      type: Number,
+      required: true
+    },
+
+    roomName: {
+      type: String
+    },
+
+    roomDate: {
+      type: [Date, String]
+    },
+
+    showRoomDate: {
+      type: Boolean
     }
   },
 
@@ -47,14 +100,13 @@ export default {
       opaqueId: "vitu-" + Janus.randomString(12),
       opaqueIdScreen: "vitu-screen-" + Janus.randomString(12),
       consentDialog: false,
+      consentDialogScreen: false,
       errors: [],
       janus: null,
-      room: null,
       bitrateTimer: [],
       localParticipant: null,
       remoteParticipants: [],
-      screenHandle: null,
-      roomToken: null
+      screenHandle: null
     };
   },
 
@@ -247,7 +299,7 @@ export default {
     onJanusPluginAttachLocalStream(stream) {
       Janus.debug(" ::: Got a local stream :::");
       this.localParticipant.setStream(stream);
-      this.localParticipant.setBitrate(512000);
+      this.localParticipant.setBitrate(this.bitrate * 1024);
       Janus.debug(stream);
     },
 
@@ -362,6 +414,7 @@ export default {
 
     onJanusRemotePluginAttachedCleanup(id) {
       Janus.log(" ::: Got a cleanup notification (remote feed " + id + ") :::");
+      this.removeRemoteParticipantById(id);
     },
 
     getRemoteParticipantById(id) {
@@ -394,6 +447,9 @@ export default {
           });
         },
         error: error => console.error(error),
+        consentDialog: on => {
+          this.consentDialogScreen = on;
+        },
         onmessage: (msg, jsep) => {
           let event = msg["videoroom"];
           if (event && event === "joined") {
@@ -488,19 +544,15 @@ export default {
       }
       this.localParticipant = null;
       this.remoteParticipants = [];
+    },
+
+    goToHome() {
+      this.$router.push({ name: "home" });
     }
   },
 
   async mounted() {
     window.addEventListener("beforeunload", this.leave);
-
-    // this.initVideoRoom();
-
-    if (this.$route.params.room) {
-      this.room = parseInt(this.$route.params.room);
-      const response = await getAccessTokenForRoom(this.room, this.token);
-      this.roomToken = response.data.token;
-    }
 
     this.localParticipant = new LocalParticipant();
     this.localParticipant.mirrored = true;
@@ -553,7 +605,7 @@ export default {
   margin-left: 15px;
 
   & > div {
-    max-width: 70vw;
+    width: 100%;
   }
 }
 
@@ -563,6 +615,7 @@ export default {
 
 .main-panel {
   flex: 1;
+  overflow: hidden;
 }
 
 .control-panel {
@@ -571,22 +624,19 @@ export default {
   height: calc(100vh - 15px - 15px - 74px);
 }
 
-.info-box {
-  background: $vitu-blue;
-  color: #eee;
-  padding: 0.8rem 1rem;
-  border-radius: calc(0.25rem - 1px) calc(0.25rem - 1px);
-  margin-bottom: 1rem;
+.consent-dialog {
+  position: fixed;
+  z-index: 999;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
 
-  a {
-    color: #eee;
-    font-weight: bold;
-  }
-
-  a:hover,
-  a:active,
-  a:focus {
-    color: white;
-  }
+.title {
+  color: $vitu-green;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

@@ -6,7 +6,13 @@
           <template slot="title">
             <account-multiple-icon class="tab-icon" />
           </template>
-          <participant-list :participants="participants" />
+          <div class="panel-wrapper">
+            <div v-if="error" class="error-panel">{{ error }}</div>
+            <participant-list :participants="participants" class="participant-list" />
+            <div class="leave-panel">
+              <button type="button" class="btn btn-secondary btn-cancel" @click="$emit('leave')">{{ $t("conference.leaveConference") }}</button>
+            </div>
+          </div>
         </b-tab>
         <b-tab class="tab-pane" :title-link-class="{ update_trigger_hack: '' }">
           <template slot="title">
@@ -15,35 +21,54 @@
               <b-badge variant="danger">{{ newMessages }}</b-badge>
             </sup>
           </template>
-          <chat :messages="messages" :visible="tabIndex === 1" @message="onownmessage" @startTyping="sendStartTyping" @endTyping="sendStopTyping" :subject="subject" :typingText="typingText" />
+          <div v-if="error" class="error-panel">{{ error }}</div>
+          <chat v-else :messages="messages" :visible="tabIndex === 1" @message="onownmessage" @startTyping="sendStartTyping" @endTyping="sendStopTyping" :subject="subject" :typingText="typingText" />
         </b-tab>
-        <b-tab class="tab-pane">
+        <b-tab class="tab-pane" v-if="showEntries">
           <template slot="title">
             <format-list-checkbox-icon class="tab-icon" />
           </template>
-          <div class="cases-panel">
-            <div v-if="demo">
-              <div>
-                1. Maxi Musterfrau
+          <div class="panel-wrapper">
+            <div class="cases-panel">
+              <div v-if="demo">
+                <div>
+                  1. Maxi Musterfrau
+                </div>
+                <div>
+                  2. Martin Mustermann
+                </div>
               </div>
-              <div>
-                2. Martin Mustermann
+              <div v-else>
+                <div v-for="(entry, index) in filteredEntries" :key="entry ? entry.id : index">{{ index + 1 }} {{ entry && entry.patient ? entry.patient.firstName : "-" }} {{ entry && entry.patient ? entry.patient.lastName : "-" }}</div>
+                <div v-if="!filteredEntries.length">{{ $t("conference.noEntries") }}</div>
               </div>
             </div>
-            <div v-else v-for="(entry, index) in entries" :key="entry.id">{{ index + 1 }} {{ entry.patient.firstName }} {{ entry.patient.lastName }}</div>
+            <div class="leave-panel">
+              <button type="button" class="btn btn-secondary btn-cancel" @click="$emit('leave')">{{ $t("conference.leaveConference") }}</button>
+            </div>
           </div>
         </b-tab>
         <b-tab class="tab-pane" v-if="keycloak.hasRealmRole('vitu-moderator')">
           <template slot="title">
-            <wrench-icon class="tab-icon" />
+            <monitor-icon class="tab-icon" />
           </template>
-          <div class="moderator-panel">
-            <button v-if="!screenShared" class="btn btn-primary" @click="onShareScreen">
-              {{ $t("conference.shareScreen") }}
-            </button>
-            <button v-else class="btn btn-primary" @click="onUnshareScreen">
-              {{ $t("conference.unshareScreen") }}
-            </button>
+          <div class="panel-wrapper">
+            <div class="moderator-panel">
+              <p>
+                {{ $t("conference.shareScreenDescription") }}
+              </p>
+              <div>
+                <button v-if="!screenShared" class="btn btn-primary" @click="onShareScreen">
+                  {{ $t("conference.shareScreen") }}
+                </button>
+                <button v-else class="btn btn-primary" @click="onUnshareScreen">
+                  {{ $t("conference.unshareScreen") }}
+                </button>
+              </div>
+            </div>
+            <div class="leave-panel">
+              <button type="button" class="btn btn-secondary btn-cancel" @click="$emit('leave')">{{ $t("conference.leaveConference") }}</button>
+            </div>
           </div>
         </b-tab>
       </b-tabs>
@@ -55,7 +80,7 @@
 import { mapState } from "vuex";
 import AccountMultipleIcon from "vue-material-design-icons/AccountMultiple";
 import ForumIcon from "vue-material-design-icons/Forum";
-import WrenchIcon from "vue-material-design-icons/Wrench";
+import MonitorIcon from "vue-material-design-icons/Monitor";
 import FormatListCheckboxIcon from "vue-material-design-icons/FormatListCheckbox";
 import Chat from "./Chat";
 import ParticipantList from "./ParticipantList";
@@ -64,12 +89,23 @@ import config from "../config/config";
 
 export default {
   props: {
+    showEntries: {
+      type: Boolean,
+      default: true
+    },
+
     entries: {
       type: Array,
       default() {
         return [];
       }
     },
+
+    consentDialogScreen: {
+      type: Boolean,
+      defaulft: false
+    },
+
     room: {
       type: Number
     }
@@ -87,7 +123,8 @@ export default {
       pingInterval: 30000,
       pingIntervalHandle: null,
       typingText: "",
-      screenShared: false
+      screenShared: false,
+      error: null
     };
   },
 
@@ -101,6 +138,14 @@ export default {
 
     demo() {
       return config.DEMO;
+    },
+
+    filteredEntries() {
+      if (this.entries) {
+        return this.entries.filter(entry => entry);
+      } else {
+        return [];
+      }
     }
   },
 
@@ -160,7 +205,7 @@ export default {
 
     onclose() {
       this.connected = false;
-      setTimeout(this.connect, 1000);
+      setTimeout(this.connect, 5000);
     },
 
     onmessage(e) {
@@ -182,13 +227,19 @@ export default {
           }
           break;
         case "ERROR":
-          throw new Error(message.payload);
+          if (message.payload === "invalid room") {
+            this.error = this.$t("error.noConnectionToChat");
+            clearInterval(this.pingIntervalHandle);
+            this.connection.onclose = () => {};
+            this.connection.close();
+          } else {
+            this.error = message.payload;
+          }
       }
     },
 
     onerror(error) {
       console.error("WebSocket Error ", error);
-      throw new Error(error);
     },
 
     onShareScreen() {
@@ -229,7 +280,7 @@ export default {
     FormatListCheckboxIcon,
     ForumIcon,
     ParticipantList,
-    WrenchIcon
+    MonitorIcon
   }
 };
 </script>
@@ -257,10 +308,35 @@ export default {
 
 .moderator-panel {
   padding: 15px;
+  flex: 1;
 }
 
 .cases-panel {
   padding: 15px;
+  flex: 1;
+}
+
+.error-panel {
+  padding: 15px;
+  background: $vitu-danger;
+  color: white;
+}
+
+.panel-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.participant-list {
+  flex: 1;
+}
+
+.leave-panel {
+  border-top: 1px solid $border-color;
+  padding: 15px;
+  display: flex;
+  justify-content: center;
 }
 </style>
 

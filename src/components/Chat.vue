@@ -80,7 +80,7 @@ export default {
   methods: {
     onEnter(event) {
       if (event.shiftKey) {
-        this.newMessage += "\n";
+        this.newMessage += "";
       } else {
         if (this.newMessage && this.newMessage.trim() !== "") {
           this.sendMessage();
@@ -91,7 +91,6 @@ export default {
     },
 
     onTyping() {
-      console.log("asdasds");
       this.typing = true;
       this.$emit("startTyping");
     },
@@ -191,6 +190,7 @@ export default {
 .input-panel {
   border-top: 1px solid $border-color;
   padding: 15px;
+  background: white;
 }
 
 .form-group {

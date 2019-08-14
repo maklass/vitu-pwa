@@ -7,10 +7,12 @@ const en = {
     title: "VITU - Virtual tumor board",
     subtitle: "Please sign in to participate in a conference.",
     text: "Please sign in to participate in a conference.",
-    buttonText: "Sign in"
+    buttonText: "Sign in",
+    imprintLink: "https://molit.eu/en/imprint/"
   },
   home: {
-    home: "Home"
+    home: "Home",
+    backToHome: "Back to home page"
   },
   worklist: {
     worklist: "Working list | Working lists",
@@ -39,6 +41,12 @@ const en = {
     currentStatus: "Current status",
     changeStatus: "Change stetus",
     statusChangedSuccessfully: "Status has been changed successfully",
+    reasonForCancellation: "Reason for cancellation",
+    reasonCode: {
+      deceased: "Patient deceased",
+      other: "Other"
+    },
+    reason: "Reason",
     status: "Status",
     statusCode: {
       WAITING_FOR_APPROVAL: "Waiting for approval",
@@ -55,7 +63,12 @@ const en = {
       COMPLETE_RECOMMENDATION: "Complete recommendation",
       COMPLETED: "Completed",
       CANCELED: "Canceled"
-    }
+    },
+    successfullyAddedCase: "The case has been successfully added to the worklist.",
+    deactivatedStateInfo: `Changes of the states in the administration area can affect already assigned states, which are deactivated afterwards.
+    These are highlighted in red. A status change of the case is recommended.`,
+    deleteCase: "Delete case",
+    deleteSuccessful: "The case was deleted successfully."
   },
   planner: {
     conferencePlanner: "Conference planner",
@@ -73,12 +86,18 @@ const en = {
     time: "Time",
     cancel: "Cancel",
     create: "Create",
-    case: "Case"
+    case: "Case",
+    caseAssignmentSuccessful: "The case was successfully assigned to the conference",
+    caseAlreadyExists: "Case already exists",
+    caseAlreadyExistsDescription: "The case was already assigned to this conference.",
+    deleteConference: "Delete conference",
+    hintConferenceInPast: "The time for the conference is in the past. Are you sure you want to create the conference?"
   },
   conference: {
     conference: "Conference",
     videoConference: "Video conference",
     shareScreen: "Share screen",
+    shareScreenDescription: "You can share your screen by clicking on the button. You then can select the screen you want to share.",
     unshareScreen: "Unshare screen",
     presentationView: "Presentation View",
     conferenceView: "Conference View",
@@ -90,11 +109,58 @@ const en = {
     unmuteAudio: "Unmute",
     muteVideo: "Mute video",
     unmuteVideo: "Unmute video",
+    participants: "Participants",
     participantSpeaking: "Participant is speaking",
-    participantNotSpeaking: "Participant is not speaking"
+    participantNotSpeaking: "Participant is not speaking",
+    leaveConference: "Leave conference",
+    enterConference: "Enter conference",
+    scheduledConferences: "Scheduled conferences",
+    otherConferences: "Other rooms",
+    roomNumber: "No.",
+    initializing: "Room is initialized",
+    tutorial: "Click on the button to enter the conference. In order to participate in the conference, you have to give your browser the permission to use the microphone and camera.",
+    noEntries: "There are no entries assigned to this conference.",
+    backToOverview: "Back to overview",
+    notAllowed: "You don't have permission to enter this conference."
   },
   documentation: {
-    documentation: "Documentation"
+    documentation: "Protocol",
+    existingProtocols: "Existing protocols",
+    protocol: "Protocol",
+    newProtocol: "New protocol",
+    selectPatient: "Select patient",
+    selectPatientInfo: "Please select a patient by using the button.",
+    name: "Name",
+    noProtocols: "No protocols available.",
+    informationTumorboard: "Information tumor board",
+    date: "Date",
+    participants: "Participants",
+    addParticipant: "Add participant",
+    followUp: "Follow-up recommended",
+    followUpReason: "Reason for follow-up",
+    anamnesis: "Anamnesis",
+    firstDiagnosis: "First diagnosis",
+    encounterId: "Tumor board case ID",
+    therapyRecommendation: "Therapy recommendation",
+    addTherapyRecommendation: "Add therapy recommendation",
+    detectedMutations: "Detected variants",
+    selectReport: "Select report",
+    selectReportInfo: "Please select a report by using the button.",
+    reportDate: "Report date",
+    reportId: "Report ID",
+    laboratory: "Laboratory",
+    recommendedStart: "Recommended start",
+    therapyRecommendationReason: "Grundlage der Therapieempfehlung",
+    somaticVariants: "Somatic variants (SNVs)",
+    copyNumberVariants: "Copy number variants (CNVs)",
+    structuralVariants: "Structural variants",
+    noVariantsFound: "No variants found in this category.",
+    reportInformation: "Report information",
+    addTherapyRecommendationInfo: "You can use the button to add one ore more therapy recommendations.",
+    noProtocolsFound: "No protocols found.",
+    searchProtocol: "Search protocol",
+    signature: "Signature | Signatures",
+    evidenceLevels: "Evidence levels"
   },
   navbar: {
     imprint: "Imprint",
@@ -133,11 +199,51 @@ const en = {
     female: "female",
     other: "other",
     unknown: "unknown",
+    diverse: "diverse",
     generalPractitioner: "General Practitioner"
   },
   demo: {
     welcome: "Welcome to the demo of VITU! For more information visit {url}.",
     room: "This room is for demo purposes only. To invite other participants to this room, please share this link: {url}"
+  },
+  roles: {
+    moderator: "Moderator",
+    administrator: "Administrator"
+  },
+  admin: {
+    description: "Description",
+    user: "User",
+    adminArea: "Admin area",
+    statusList: "Status list",
+    addStatus: "Add status",
+    editStatus: "Edit status",
+    conferenceSettings: "Conference settings",
+    bitrate: "Video quality",
+    aspectRatio: "Aspect ratio",
+    save: "Save",
+    saveSuccessful: "Successfully saved",
+    statusListDescription: "You can select the states from the list and deactivate unused states. You can use drag&drop to place the states in an order of your choice. Then click save to apply the changes.",
+    statusListDescriptionHint: `Please note that a change applies to all tumor conferences; states that have already been assigned and are subsequently deactivated are highlighted in color in the worklist 
+    after the change has been saved. A status change of the case is recommended.`,
+    active: "Active",
+    persistentRoomEnabled: "Persistent room enabled",
+    persistentRoomName: "Persistent room name",
+    cutVideoStreams: "Cut video streams",
+    bitrates: {
+      low: "Low",
+      medium: "Medium",
+      high: "High",
+      veryHigh: "Very high",
+      unlimited: "Unlimited"
+    },
+    showDateTimeInTitle: "Show date in title"
+  },
+  error: {
+    errorOccurred: "An error occurred",
+    unauthorized: "You are not authorized to execute this operation.",
+    pageNotFound: "Page not found",
+    pageNotFoundDescription: "The requested page could not be found. Please make sure that you entered the address correctly.",
+    noConnectionToChat: "The connection to the chat could not be established."
   },
   firstName: "First name",
   lastName: "Last name",
@@ -147,9 +253,18 @@ const en = {
   male: "male",
   female: "female",
   unknown: "unknown",
-  pleaseChoose: "Please select",
+  diverse: "diverse",
+  pleaseSelect: "Please select",
   cancel: "Cancel",
-  notes: "Notes"
+  notes: "Notes",
+  collapse: "Collapse",
+  add: "Add",
+  hint: "Note",
+  search: "Search",
+  noInformation: "no information",
+  print: "Print",
+  yes: "Yes",
+  no: "No"
 };
 
 export default en;

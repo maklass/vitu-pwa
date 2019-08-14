@@ -1,5 +1,5 @@
 <script>
-import { extractGivenName, extractFamilyName } from "@/utils/fhir-util";
+import { extractGivenName, extractFamilyName } from "@/util/fhir-util";
 import Base from "./Base";
 
 export default {

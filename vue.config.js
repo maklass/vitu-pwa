@@ -32,7 +32,8 @@ module.exports = {
         inject: true,
 
         favicons: {
-          start_url: "/index.html",
+          appName: "VITU",
+          start_url: "../",
           android: true,
           appleIcon: true,
           appleStartup: true,

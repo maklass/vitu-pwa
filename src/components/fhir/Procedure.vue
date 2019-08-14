@@ -1,5 +1,5 @@
 <script>
-import { extractCodableConcept } from "@/utils/fhir-util";
+import { extractCodableConcept } from "@/util/fhir-util";
 import Base from "./Base";
 
 export default {

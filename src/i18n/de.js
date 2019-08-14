@@ -7,10 +7,12 @@ const de = {
     title: "VITU - Virtuelles Tumorboard",
     subtitle: "Melden Sie sich an, um an einer Konferenz teilzunehmen.",
     text: "Melden Sie sich an, um an einer Konferenz teilzunehmen.",
-    buttonText: "Anmelden"
+    buttonText: "Anmelden",
+    imprintLink: "https://molit.eu/impressum"
   },
   home: {
-    home: "Home"
+    home: "Home",
+    backToHome: "Zurück zur Hauptseite"
   },
   worklist: {
     worklist: "Arbeitsliste | Arbeitslisten",
@@ -39,6 +41,12 @@ const de = {
     currentStatus: "Aktueller Status",
     changeStatus: "Status ändern",
     statusChangedSuccessfully: "Der Status wurde erfolgreich geändert",
+    reasonForCancellation: "Grund für Abbruch",
+    reasonCode: {
+      deceased: "Patient verstorben",
+      other: "Sonstiger Grund"
+    },
+    reason: "Grund",
     status: "Status",
     statusCode: {
       WAITING_FOR_APPROVAL: "Warten auf Bestätigung",
@@ -55,7 +63,12 @@ const de = {
       COMPLETE_RECOMMENDATION: "Empfehlungsprotokoll abschließen",
       COMPLETED: "Abgeschlossen",
       CANCELED: "Abgebrochen"
-    }
+    },
+    successfullyAddedCase: "Der Fall wurde erfolgreich zur Arbeitsliste hinzugefügt.",
+    deactivatedStateInfo: `Änderungen der Stati im Administrationsbereich können sich auf bereits zugewiesene Stati, die nachträglich deaktiviert werden, auswirken.
+    Diese werden farblich hervorgehoben. Eine Statusänderung des Falls wird empfohlen.`,
+    deleteCase: "Fall löschen",
+    deleteSuccessful: "Der Fall wurde erfolgreich gelöscht."
   },
   planner: {
     conferencePlanner: "Konferenzplaner",
@@ -73,12 +86,18 @@ const de = {
     time: "Uhrzeit",
     cancel: "Abbrechen",
     create: "Anlegen",
-    case: "Fall"
+    case: "Fall",
+    caseAssignmentSuccessful: "Der Fall wurde der Konferenz erfolgreich zugeordnet",
+    caseAlreadyExists: "Fall bereits vorhanden",
+    caseAlreadyExistsDescription: "Der Fall wurde bereits zu dieser Tumorkonferenz hinzugefügt.",
+    deleteConference: "Konferenz löschen",
+    hintConferenceInPast: "Die Uhrzeit für die Konferenz liegt in der Vergangenheit. Sind Sie sicher, dass Sie die Konferenz anlegen möchten?"
   },
   conference: {
     conference: "Konferenz",
     videoConference: "Videokonferenz",
     shareScreen: "Bildschirm teilen",
+    shareScreenDescription: "Sie können Ihren Bildschirm mit Klick auf den Button teilen. Sie haben dann die Möglichkeit, den zu teilenden Bildschirm auszuwählen.",
     unshareScreen: "Bildschirm teilen beenden",
     presentationView: "Präsentationsansicht",
     conferenceView: "Konferenzansicht",
@@ -90,11 +109,58 @@ const de = {
     unmuteAudio: "Stummschalten aufheben",
     muteVideo: "Video ausschalten",
     unmuteVideo: "Video einschalten",
+    participants: "Teilnehmer",
     participantSpeaking: "Teilnehmer spricht gerade",
-    participantNotSpeaking: "Teilnehmer spricht gerade nicht"
+    participantNotSpeaking: "Teilnehmer spricht gerade nicht",
+    leaveConference: "Konferenz verlassen",
+    enterConference: "Konferenz beitreten",
+    scheduledConferences: "Geplante Konferenzen",
+    otherConferences: "Andere Räume",
+    roomNumber: "Nr.",
+    initializing: "Raum wird initialisiert",
+    tutorial: "Klicken Sie auf den Button um der Konferenz beizutreten. Danach werden Sie aufgefordert, den Zugriff auf Ihre Kamera und das Mikrofon im Browser zu erlauben.",
+    noEntries: "Dieser Konferenz wurden keine Fälle zugeordnet.",
+    backToOverview: "Zurück zur Übersicht",
+    notAllowed: "Sie haben keine Zugriffsberechtigung für diese Konferenz."
   },
   documentation: {
-    documentation: "Protokoll"
+    documentation: "Protokoll",
+    existingProtocols: "Vorhandene Protokolle",
+    protocol: "Protokoll",
+    newProtocol: "Neues Protokoll",
+    selectPatient: "Patient auswählen",
+    selectPatientInfo: "Bitte wählen Sie einen Patienten über den Button aus.",
+    name: "Name",
+    noProtocols: "Keine Protokolle vorhanden.",
+    informationTumorboard: "Information Tumorboard",
+    date: "Datum der Vorstellung",
+    participants: "Teilnehmer",
+    addParticipant: "Teilnehmer hinzufügen",
+    followUp: "Wiedervorstellung empfohlen",
+    followUpReason: "Grund für Wiedervorstellung",
+    anamnesis: "Anamnese",
+    firstDiagnosis: "Erstdiagnose",
+    encounterId: "Tumorboard Fall ID",
+    therapyRecommendation: "Therapieempfehlung",
+    addTherapyRecommendation: "Therapieempfehlung hinzufügen",
+    detectedMutations: "Nachgewiesene genetische Aberationen & Bedeutungen",
+    selectReport: "Befund auswählen",
+    selectReportInfo: "Bitte wählen Sie einen Befund über den Button aus.",
+    reportDate: "Befunddatum",
+    reportId: "Befund ID",
+    laboratory: "Labor",
+    recommendedStart: "Empfohlener Beginn",
+    therapyRecommendationReason: "Grundlage der Therapieempfehlung",
+    somaticVariants: "Somatische Varianten (SNVs)",
+    copyNumberVariants: "Kopienzahlveränderungen (CNVs)",
+    structuralVariants: "Strukturvarianten",
+    noVariantsFound: "Es wurden keine Varianten in dieser Kategorie gefunden.",
+    reportInformation: "Befundinformationen",
+    addTherapyRecommendationInfo: "Sie können über den Button ein oder meherere Therapieempfehlungen hinzufügen.",
+    noProtocolsFound: "Es wurden keine Protokolle gefunden.",
+    searchProtocol: "Protokoll suchen",
+    signature: "Unterschrift | Unterschriften",
+    evidenceLevels: "Evidenzklassen"
   },
   navbar: {
     imprint: "Impressum",
@@ -133,11 +199,51 @@ const de = {
     female: "weiblich",
     other: "andere",
     unknown: "unbekannt",
+    diverse: "divers",
     generalPractitioner: "Behandelnder Arzt"
   },
   demo: {
     welcome: "Herzlich willkommen bei der Demo von VITU! Weitere Informationen zu den Funktionalitäten von VITU finden Sie unter {url}. Alle in der Demo gezeigten Daten werden täglich zurückgesetzt.",
     room: "Dies ist ein Demo-Raum. Um andere Teilnehmer in diesen Raum einzuladen, senden Sie bitte diesen Link: {url}"
+  },
+  roles: {
+    moderator: "Moderator",
+    administrator: "Administrator"
+  },
+  admin: {
+    description: "Beschreibung",
+    user: "Benutzer",
+    adminArea: "Adminbereich",
+    statusList: "Statusliste",
+    addStatus: "Status hinzufügen",
+    editStatus: "Status bearbeiten",
+    conferenceSettings: "Konferenzeinstellungen",
+    bitrate: "Videoqualität",
+    aspectRatio: "Format",
+    save: "Speichern",
+    saveSuccessful: "Speichern erfolgreich",
+    statusListDescription: "Sie können die Stati aus der Liste wählen und nicht verwendete Stati deaktivieren. Mittels drag&drop können Sie die Stati neu sortieren. Klicken Sie dann auf Speichern, um die Änderungen zu übernehmen.",
+    statusListDescriptionHint: `Bitte beachten Sie, dass eine Änderung sich auf alle Tumorkonferenzen bezieht, bereits zugewiesene Stati, 
+    die nachträglich deaktiviert werden, werden in der Arbeitsliste nach Speichern der Änderung farblich hervorgehoben. Eine Statusänderung des Falls wird empfohlen.`,
+    active: "Aktiv",
+    persistentRoomEnabled: "Ad-hoc-Raum aktiv",
+    persistentRoomName: "Ad-hoc-Raum Name",
+    cutVideoStreams: "Videostreams zuschneiden",
+    bitrates: {
+      low: "Niedrig",
+      medium: "Mittel",
+      high: "Hoch",
+      veryHigh: "Sehr hoch",
+      unlimited: "Unbegrenzt"
+    },
+    showDateTimeInTitle: "Datum im Konferenztitel anzeigen"
+  },
+  error: {
+    errorOccurred: "Es ist ein Fehler aufgetreten",
+    unauthorized: "Sie sind nicht berechtigt, diese Operation durchzuführen.",
+    pageNotFound: "Seite nicht gefunden",
+    pageNotFoundDescription: "Die angeforderte Seite konnte nicht gefunden werden. Bitte stellen Sie sicher, dass die Adresse korrekt ist.",
+    noConnectionToChat: "Die Verbindung zum Chat konnte nicht hergestellt werden."
   },
   firstName: "Vorname",
   lastName: "Nachname",
@@ -147,9 +253,18 @@ const de = {
   male: "männlich",
   female: "weiblich",
   unknown: "unbekannt",
-  pleaseChoose: "Bitte auswählen",
+  diverse: "divers",
+  pleaseSelect: "Bitte auswählen",
   cancel: "Abbrechen",
-  notes: "Notizen"
+  notes: "Notizen",
+  collapse: "Zuklappen",
+  add: "Hinzufügen",
+  hint: "Hinweis",
+  search: "Suchen",
+  noInformation: "keine Angabe",
+  print: "Drucken",
+  yes: "Ja",
+  no: "Nein"
 };
 
 export default de;

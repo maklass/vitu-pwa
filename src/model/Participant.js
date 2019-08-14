@@ -35,7 +35,7 @@ export class LocalParticipant extends Participant {
         ptype: "publisher",
         display: this.caption,
         pin,
-        token
+        token: token || "test"
       }
     });
   }
