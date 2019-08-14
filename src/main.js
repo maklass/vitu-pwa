@@ -12,7 +12,6 @@ import store from "./store";
 import i18n from "./i18n/i18n";
 import config from "./config/config";
 import { intersection } from "./util/array-util";
-// import * as Sentry from "@sentry/browser";
 
 import "vue-material-design-icons/styles.css";
 import "highlight.js/styles/github-gist.css";
@@ -46,16 +45,6 @@ router.beforeEach((to, from, next) => {
 
   next();
 });
-
-// Sentry.init({
-//   dsn: "https://50bc0a9023ae43ef828244047d719f08@sentry.molit.eu/4",
-//   integrations: [
-//     new Sentry.Integrations.Vue({
-//       Vue,
-//       attachProps: false
-//     })
-//   ]
-// });
 
 let initializeVue = function() {
   new Vue({
