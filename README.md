@@ -8,4 +8,4 @@ You can try VITU and the other componentes of the MOLIT Framework here: https://
 
 ### Documentation
 
-See full documentation here: https://docs.molit.eu/vitu-docs/
+See full documentation here: https://docs.molit.eu/molit-docs/
