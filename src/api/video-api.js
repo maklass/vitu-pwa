@@ -2,7 +2,7 @@ import config from "../config/config";
 import { get, post, put, remove } from "./base-api";
 
 const URL_ROOMS = `${config.VIDEO_BACKEND_URL}/admin/video-room`;
-const URL_ROOMS_BATCH = `${config.VIDEO_BACKEND_URL}/admin/video-room/$batch`;
+const URL_ROOMS_BATCH = `${config.VIDEO_BACKEND_URL}/admin/video-room/%24batch`;
 const URL_SETTINGS = `${config.VIDEO_BACKEND_URL}/admin/settings`;
 const URL_ICE_SERVERS = `${config.VIDEO_BACKEND_URL}/ice-servers`;
 const URL_ROOM_ACCESS_TOKEN = `${config.VIDEO_BACKEND_URL}/video-room/token`;
@@ -42,18 +42,31 @@ export const addRoom = (description, date, token) => {
   );
 };
 
-export const addRoomBatch = (description, date, token) => {
+/**
+ * Adds multiple rooms to the room list.
+ *
+ * @param {String} description - the description
+ * @param {Date} start - the start date
+ * @param {Date} end - the end date
+ * @param {String} token - the token
+ * @returns {Promise} the response as Promise
+ */
+export const addRoomsBatch = (description, start, end, token) => {
   return post(
     URL_ROOMS_BATCH,
     {
       description,
       tumorConference: {
         description,
-        date,
+        date: start,
         entries: []
       }
     },
-    token
+    token,
+    {
+      start,
+      end
+    }
   );
 };
 

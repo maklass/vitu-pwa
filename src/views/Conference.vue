@@ -16,7 +16,7 @@
               <p class="card-text">
                 {{ $t("conference.tutorial") }}
               </p>
-              <button class="btn btn-primary" @click="goToConference">{{ $t("conference.enterConference") }}</button>
+              <button autofocus class="btn btn-primary" @click="goToConference">{{ $t("conference.enterConference") }}</button>
             </div>
           </div>
           <div class="card" v-if="error">

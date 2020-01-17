@@ -28,7 +28,9 @@ export default {
   methods: {
     onLoginClick() {
       this.keycloak.login({
-        redirectUri: window.location.origin + "/" + config.BASE_URL
+        redirectUri: window.location.origin + "/" + config.BASE_URL,
+        locale: this.$i18n.locale,
+        kcLocale: this.$i18n.locale
       });
     }
   }

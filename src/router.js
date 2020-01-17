@@ -4,7 +4,11 @@ import NotFound from "./views/404";
 import Home from "./views/Home.vue";
 import About from "./views/About.vue";
 import Login from "./views/Login.vue";
-import WorkList from "@/views/WorkList";
+import WorkListOld from "@/views/WorkList";
+import Worklist from "@/views/worklist/Worklist";
+import ClinicalCaseList from "@/views/worklist/ClinicalCaseList";
+import ClinicalCaseEdit from "@/views/worklist/ClinicalCaseEdit";
+import PatientEdit from "@/views/worklist/PatientEdit";
 import Planner from "@/views/Planner";
 import Conference from "@/views/Conference";
 import ConferenceOverview from "@/views/ConferenceOverview";
@@ -14,6 +18,7 @@ import DocumentationView from "@/views/DocumentationView";
 import Admin from "@/views/admin/Admin";
 import StatusEdit from "@/views/admin/StatusEdit";
 import StatusList from "@/views/admin/StatusList";
+import UserEdit from "@/views/admin/UserEdit";
 import ConferenceSettings from "@/views/admin/ConferenceSettings";
 import UserList from "@/views/admin/UserList";
 
@@ -38,10 +43,45 @@ export default new Router({
       meta: { requiresAuth: true, roles: [roles.USER, roles.MODERATOR, roles.ADMINISTRATOR] }
     },
     {
+      path: "/worklist-old",
+      name: "worklist-old",
+      component: WorkListOld,
+      meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+    },
+    {
       path: "/worklist",
       name: "worklist",
-      component: WorkList,
-      meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+      component: Worklist,
+      meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] },
+      redirect: {
+        name: "clinical-case-list"
+      },
+      children: [
+        {
+          path: "/worklist/clinical-case-list",
+          name: "clinical-case-list",
+          component: ClinicalCaseList,
+          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+        },
+        {
+          path: "/worklist/clinical-case/:id?",
+          name: "clinical-case",
+          component: ClinicalCaseEdit,
+          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+        },
+        {
+          path: "/worklist/clinical-case/new",
+          name: "clinical-case-new",
+          component: ClinicalCaseEdit,
+          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+        },
+        {
+          path: "/worklist/patient/new",
+          name: "patient-new",
+          component: PatientEdit,
+          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+        }
+      ]
     },
     {
       path: "/planner",
@@ -85,7 +125,7 @@ export default new Router({
       component: Admin,
       meta: { requiresAuth: true, roles: [roles.ADMINISTRATOR] },
       redirect: {
-        name: "statuses"
+        name: "users"
       },
       children: [
         {
@@ -116,6 +156,18 @@ export default new Router({
           path: "/admin/users",
           name: "users",
           component: UserList,
+          meta: { requiresAuth: true, roles: [roles.ADMINISTRATOR] }
+        },
+        {
+          path: "/admin/users/:id?",
+          name: "user-edit",
+          component: UserEdit,
+          meta: { requiresAuth: true, roles: [roles.ADMINISTRATOR] }
+        },
+        {
+          path: "/admin/users/new",
+          name: "user-new",
+          component: UserEdit,
           meta: { requiresAuth: true, roles: [roles.ADMINISTRATOR] }
         }
       ]

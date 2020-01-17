@@ -1,6 +1,7 @@
 import Vue from "vue";
 import VueHighlightJS from "vue-highlightjs";
 import BootstrapVue from "bootstrap-vue";
+import vSelect from "vue-select";
 import VueClipboard from "vue-clipboard2";
 
 import adapter from "webrtc-adapter";
@@ -23,6 +24,8 @@ Vue.use(BootstrapVue);
 Vue.use(VueHighlightJS);
 Vue.use(VueClipboard);
 
+Vue.component("v-select", vSelect);
+
 window.adapter = adapter;
 
 router.beforeEach((to, from, next) => {
@@ -32,7 +35,14 @@ router.beforeEach((to, from, next) => {
     if (to.meta.requiresAuth) {
       // Check if user is logged in
       if (!keycloak.authenticated) {
-        keycloak.login();
+        if (to.name === "home") {
+          next({ name: "login" });
+          return;
+        }
+        keycloak.login({
+          locale: i18n.locale,
+          kcLocale: i18n.locale
+        });
         return;
       }
 

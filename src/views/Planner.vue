@@ -1,6 +1,17 @@
 <template>
   <div>
-    <notification-panels :showError="error" :errorMessage="error" :showSuccess="showSuccess" :successMessage="$t('planner.caseAssignmentSuccessful')" :fluid="true" />
+    <notification-panels
+      :showError="showError"
+      :errorMessage="error"
+      :showWarning="showWarning"
+      :warning="warning"
+      :showSuccess="showSuccess"
+      :successMessage="$t('planner.caseAssignmentSuccessful')"
+      @closeSuccess="closeSuccess"
+      @closeWarning="closeWarning"
+      @closeError="closeError"
+      :fluid="true"
+    />
     <div class="container-fluid planner">
       <div class="row">
         <div class="col sidebar">
@@ -9,13 +20,13 @@
             <input type="text" class="form-control" :placeholder="$t('planner.searchCase')" v-model="searchTermCases" />
           </div>
           <p v-if="schedulableCases && schedulableCases.length === 0">{{ $t("planner.noSchedulableCases") }}</p>
-          <spinner v-if="!schedulableCases" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" :message="$t('data.loading')" />
+          <spinner v-if="!schedulableCases && !warning" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" :message="$t('data.loading')" />
           <div class="list-group" v-if="schedulableCases">
             <draggable class="draggable" v-model="schedulableCases" v-bind="dragOptions" @start="drag = true" @end="drag = false">
               <div class="list-group-item flex-column align-items-start group-item entry" v-for="clinicalCase in schedulableCases" :key="clinicalCase.id">
                 <div class="headline text-muted">{{ $t("planner.case") }} {{ clinicalCase.caseId }}</div>
                 <br />
-                <div class="text-muted">{{ clinicalCase.patientName }}, {{ $d(new Date(clinicalCase.patientBirthDate)) }}</div>
+                <div class="text-muted">{{ clinicalCase.patientName }}, {{ clinicalCase.patientBirthDate ? $d(new Date(clinicalCase.patientBirthDate)) : "" }}</div>
                 <div class="text-muted">{{ clinicalCase.diagnosis }}</div>
               </div>
             </draggable>
@@ -36,7 +47,7 @@
                 <plus-icon class="icon" />
               </div>
             </b-card>
-            <div no-body v-for="conference in filteredRooms" :key="conference.id">
+            <div no-body v-for="conference in paginatedRooms" :key="conference.id">
               <draggable
                 v-model="conference.tumorConference.entries"
                 :options="dragOptions"
@@ -56,6 +67,7 @@
               </draggable>
             </div>
           </div>
+          <b-pagination v-if="filteredRooms" class="pagination" align="center" :total-rows="filteredRooms.length" :per-page="max" v-model="currentPage" />
         </div>
       </div>
     </div>
@@ -73,31 +85,54 @@
       :header-text-variant="'primary'"
       :ok-disabled="!addNewConferenceButtonEnabled"
     >
+      <div class="conference-details">
+        <div class="form-group">
+          <input @keyup.enter="addNewConference" class="form-control" required type="text" v-model="newConference.name" :maxlength="maxLengthConferenceName" :placeholder="$t('planner.enterConferenceName')" />
+        </div>
+        <!-- <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="addEndDate" v-model="addEndDate" />
+          <label class="form-check-label" for="addEndDate">
+            {{ $t("planner.createAppointmentSeries") }}
+          </label>
+        </div> -->
+        <div v-if="showHintDateTimeInPast" class="hint-past">
+          <strong>{{ $t("hint") }}:</strong> {{ $t("planner.hintConferenceInPast") }}
+        </div>
+        <!-- <b-form-textarea v-model="newConference.description" :placeholder="$t('planner.description')" :rows="5" :max-rows="10"></b-form-textarea> -->
+      </div>
       <div class="row">
-        <b-col md="auto">
-          <datepicker
-            class="datepicker"
-            v-model="newConference.date"
-            :disabled-dates="datepickerState.disabledDates"
-            :highlighted="datepickerState.highlighted"
-            :inline="true"
-            :language="datePickerLanguage"
-            :bootstrap-styling="true"
-            :monday-first="true"
-          />
+        <b-col>
+          <div class="form-group">
+            <label>{{ $t("worklist.date") }}</label>
+            <datepicker
+              class="datepicker"
+              v-model="newConference.date"
+              :disabled-dates="datepickerState.disabledDates"
+              :highlighted="datepickerState.highlighted"
+              :inline="true"
+              :language="datePickerLanguage"
+              :bootstrap-styling="true"
+              :monday-first="true"
+            />
+          </div>
           <div class="from-group" :label="$t('planner.time')" label-cols-md="3">
-            <input class="form-control" type="time" v-model="newConference.time" />
+            <input @keyup.enter="addNewConference" class="form-control" type="time" v-model="newConference.time" />
           </div>
         </b-col>
+        <div class="col-md-auto"></div>
         <b-col>
-          <div class="conference-details">
-            <div class="form-group">
-              <input class="form-control" required type="text" v-model="newConference.name" :maxlength="maxLengthConferenceName" :placeholder="$t('planner.enterConferenceName')" />
-            </div>
-            <div v-if="showHintDateTimeInPast" class="hint-past">
-              <strong>{{ $t("hint") }}:</strong> {{ $t("planner.hintConferenceInPast") }}
-            </div>
-            <!-- <b-form-textarea v-model="newConference.description" :placeholder="$t('planner.description')" :rows="5" :max-rows="10"></b-form-textarea> -->
+          <div v-if="addEndDate">
+            <label>{{ $t("worklist.date") }}</label>
+            <datepicker
+              class="datepicker"
+              v-model="newConference.endDate"
+              :disabled-dates="datepickerState.disabledEndDates"
+              :highlighted="datepickerState.highlighted"
+              :inline="true"
+              :language="datePickerLanguage"
+              :bootstrap-styling="true"
+              :monday-first="true"
+            />
           </div>
         </b-col>
       </div>
@@ -120,7 +155,7 @@
           <h6 v-if="item">{{ $t("worklist.case") }}</h6>
           <p v-if="item && currentConference">
             {{ $t("worklist.case") }} {{ item.caseId }} <br />
-            {{ item.patientName }}, {{ $d(new Date(item.patientBirthDate)) }} <br />
+            {{ item.patientName }}, {{ item.patientBirthDate ? $d(new Date(item.patientBirthDate)) : "" }} <br />
             {{ $t("worklist.diagnosis") }}: {{ item.diagnosis }}
           </p>
         </div>
@@ -142,7 +177,7 @@
     </b-modal>
 
     <b-modal id="modalRoomDetails" ref="modalRoomDetails" size="lg" :title="$t('conference.videoConference')" ok-only :header-text-variant="'primary'">
-      <div v-if="currentConference">
+      <div v-if="currentConference && !deleteInProgress">
         <div class="room-details-header">
           <div class="room-details-info">
             <h5 class="room-details-title">{{ currentConference.tumorConference.description }}</h5>
@@ -153,9 +188,10 @@
           <div>
             <b-dropdown id="dropdown-right" right text="" variant="secondary" class="m-2">
               <template slot="button-content">
-                <delete-icon class="delete-icon" />
+                <!-- <delete-icon class="delete-icon" /> -->
               </template>
-              <b-dropdown-item @click="deleteRoom(currentConference.janusId)">{{ $t("planner.deleteConference") }}</b-dropdown-item>
+              <b-dropdown-item @click="cloneRoom(currentConference)">{{ $t("planner.cloneConference") }}</b-dropdown-item>
+              <b-dropdown-item @click="deleteRoom(currentConference.janusId)" class="text-danger">{{ $t("planner.deleteConference") }}</b-dropdown-item>
             </b-dropdown>
           </div>
         </div>
@@ -194,6 +230,7 @@
           </b-tab>
         </b-tabs>
       </div>
+      <spinner v-if="deleteInProgress" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" />
     </b-modal>
 
     <b-modal id="modalCaseAlreadyExists" ref="modalCaseAlreadyExists" :title="$t('planner.caseAlreadyExists')" ok-only :header-text-variant="'primary'">
@@ -206,9 +243,9 @@
 import ConferenceCard from "@/components/ConferenceCard";
 import NotificationPanels from "@/components/ui/NotificationPanels";
 import RoomParticipants from "@/components/RoomParticipants";
-import { addEntryToConference, fetchEntries, getStatuses, updateEntry } from "../api/process-api";
-import { getRooms, addRoom, addParticipantsToRoom, deleteRoom } from "../api/video-api";
-import { handleAxiosError } from "@/util/error-util";
+import { addEntryToConference, addEntry } from "@/api/process-api";
+import { fetchResources, mapFhirResponse, updateResource } from "@molit/fhir-api";
+import { getRooms, addRoom, addRoomsBatch, addParticipantsToRoom, deleteRoom, getParticipantsInRoom } from "@/api/video-api";
 import config from "../config/config";
 
 import Datepicker from "vuejs-datepicker";
@@ -219,8 +256,12 @@ import Spinner from "vue-simple-spinner";
 import draggable from "vuedraggable";
 import { mapState } from "vuex";
 import { de, en, es } from "vuejs-datepicker/dist/locale";
+import { get } from "lodash";
+import notifications from "@/mixins/notifications";
 
 export default {
+  mixins: [notifications],
+
   data() {
     return {
       rooms: null,
@@ -239,13 +280,27 @@ export default {
         numberOfCases: 0
       },
 
+      addEndDate: false,
+
       dragOverConference: null,
       drag: false,
       error: null,
       showSuccess: false,
 
       searchTermConference: null,
-      searchTermCases: ""
+      searchTermCases: "",
+
+      searchParams: {
+        code: "http://molit.eu/fhir/NamingSystem/vitu-task|mtb-task",
+        status: "in-progress",
+        _sort: "-authored-on",
+        _include: ["Task:patient", "Task:input.valueReference"]
+      },
+
+      currentPage: 1,
+      max: 20,
+
+      deleteInProgress: false
     };
   },
 
@@ -295,6 +350,9 @@ export default {
         disabledDates: {
           to: date
         },
+        disabledEndDates: {
+          to: this.newConference ? this.newConference.date : date
+        },
         highlighted: {
           // days: [1, 2, 3, 4, 5]
         }
@@ -332,7 +390,7 @@ export default {
           return false;
         }
 
-        if (room.tumorConference && room.tumorConference.date && new Date().getTime() > new Date(room.tumorConference.date).getTime() + 1000 * 60 * 60 * 12) {
+        if (room.tumorConference && room.tumorConference.date && new Date().getTime() > new Date(room.tumorConference.date).getTime() + 1000 * 60 * 60 * 48) {
           return false;
         }
 
@@ -342,6 +400,20 @@ export default {
 
         return true;
       });
+      // .sort((c1, c2) => {
+      //   if (c1 && c1.tumorConference && c1.tumorConference.description && c2 && c2.tumorConference && c2.tumorConference.description) {
+      //     return c1.tumorConference.description.localeCompare(c2.tumorConference.description);
+      //   }
+      //   return 0;
+      // });
+    },
+
+    paginatedRooms() {
+      if (!this.filteredRooms) {
+        return [];
+      }
+
+      return this.filteredRooms.slice((this.currentPage - 1) * this.max, this.currentPage * this.max);
     },
 
     item() {
@@ -372,11 +444,10 @@ export default {
 
     schedulableCases: {
       get() {
-        if (!this.entries || !this.entries.entity) {
+        if (!this.entries) {
           return null;
         } else {
-          return this.entries.entity
-            .filter(entry => entry.status.description === "ASSIGN_TO_TUMOR_CONFERENCE")
+          return this.entries
             .filter(entry =>
               JSON.stringify(entry)
                 .toLowerCase()
@@ -391,8 +462,8 @@ export default {
                 caseId: entry.orbisCaseNo,
                 diagnosis: entry.tumorDiagnose,
                 status: entry.status,
-                statusNumber: `${entry.status.orderNumber}/${this.statuses.length}`,
-                statusLabel: this.$t(`worklist.statusCode.${entry.status.description}`),
+                // statusNumber: `${entry.status.orderNumber}/${this.statuses.length}`,
+                // statusLabel: this.$t(`worklist.statusCode.${entry.status.description}`),
                 entry: entry
               };
             });
@@ -400,7 +471,7 @@ export default {
       },
 
       set(newEntries) {
-        this.entries.entity = this.entries.entity.filter(entry => newEntries.find(newEntry => newEntry.id === entry.id));
+        this.entries = this.entries.filter(entry => newEntries.find(newEntry => newEntry.id === entry.id));
       }
     },
 
@@ -417,13 +488,21 @@ export default {
   },
 
   methods: {
-    dragOptionsPut(component) {
-      this.dragOverConference = component.el.id;
+    async fetchStatuses() {
+      try {
+        const valueSet = mapFhirResponse(await fetchResources(config.FHIR_URL, "ValueSet", { url: "http://molit.eu/fhir/ValueSet/vitu-workinglist" }, this.token))[0];
+        if (!valueSet) {
+          throw new Error("ValueSet 'vitu-worklist' not found on server.");
+        }
+        this.statuses = valueSet.compose.include[0].concept;
+      } catch (e) {
+        this.loading = false;
+        this.handleError(e, true);
+      }
     },
 
-    handleError(error) {
-      this.error = handleAxiosError(error, this);
-      window.scrollTo(0, 0);
+    dragOptionsPut(component) {
+      this.dragOverConference = component.el.id;
     },
 
     openAddConferenceModal() {
@@ -471,20 +550,30 @@ export default {
       try {
         if (this.currentConference && this.currentConference.tumorConference) {
           let entry = this.currentCase.entry;
-          let waitForCaseDiscussionStatus = this.statuses.find(status => status.description === "WAIT_FOR_CASE_DISCUSSION");
 
-          if (waitForCaseDiscussionStatus) {
-            entry.status = waitForCaseDiscussionStatus;
-            await updateEntry(entry, this.token);
+          const tempStatus = {
+            id: 1,
+            description: "COMPLETE_RECOMMENDATION",
+            icon: "FOLDER",
+            orderNumber: 10,
+            disabled: false
+          };
+
+          let response = await addEntry(1, 1, entry.patient.firstName, entry.patient.lastName, "", entry.patient.dateOfBirth, "UNKNOWN", tempStatus, entry.id, this.token);
+          const tempEntry = response.data;
+
+          await addEntryToConference(this.currentConference.tumorConference.id, tempEntry, this.token);
+
+          const status = this.statuses.find(status => status.code === "wait-for-case-review");
+
+          if (status) {
+            const task = entry.task;
+            task.businessStatus = status;
+            await updateResource(config.FHIR_URL, task, this.token);
           }
-
-          await addEntryToConference(this.currentConference.tumorConference.id, entry, this.token);
 
           this.showSuccess = true;
           await this.reload();
-          setTimeout(() => {
-            this.showSuccess = false;
-          }, config.SUCCESS_HEADER_TIMEOUT);
         }
       } catch (e) {
         this.handleError(e);
@@ -494,7 +583,7 @@ export default {
     reload() {
       this.entries = null;
       this.rooms = null;
-      this.getEntries();
+      this.fetchEntries();
       this.getRooms();
     },
 
@@ -505,6 +594,14 @@ export default {
     },
 
     async addNewConference() {
+      if (!this.newConference.date || !this.newConference.time || !this.newConference.name) {
+        return;
+      }
+      let participantIds = [];
+      if (this.newConference.participantIds) {
+        participantIds = this.newConference.participantIds;
+      }
+      this.$refs.modalAddConference.hide();
       try {
         this.rooms = null;
         let date = new Date(this.newConference.date);
@@ -513,8 +610,18 @@ export default {
           date.setMinutes(this.newConference.time.split(":")[1]);
           this.newConference.date = date;
         }
-        const room = (await addRoom(this.newConference.name, this.newConference.date, this.token)).data;
-        await addParticipantsToRoom(room.janusId, this.subject, this.token);
+        if (this.addEndDate) {
+          const room = (await addRoomsBatch(this.newConference.name, this.newConference.date, this.newConference.endDate, this.token)).data;
+          console.log(room);
+        } else {
+          const room = (await addRoom(this.newConference.name, this.newConference.date, this.token)).data;
+          if (participantIds.indexOf(this.subject) === -1) {
+            participantIds.push(this.subject);
+          }
+          await addParticipantsToRoom(room.janusId, participantIds, this.token);
+          this.newConference.participantIds = undefined;
+        }
+
         this.getRooms();
       } catch (e) {
         this.handleError(e);
@@ -522,12 +629,30 @@ export default {
     },
 
     async deleteRoom(roomId) {
+      this.deleteInProgress = true;
       try {
         await deleteRoom(roomId, this.token);
+        this.$refs.modalRoomDetails.hide();
+        this.deleteInProgress = false;
         this.reload();
       } catch (e) {
         this.handleError(e);
+        this.deleteInProgress = false;
       }
+    },
+
+    async cloneRoom(conference) {
+      const participantIds = (await getParticipantsInRoom(conference.janusId, this.token)).data;
+      const date = new Date(conference.tumorConference.date);
+
+      this.newConference.name = conference.tumorConference.description;
+      this.newConference.date = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 7);
+      this.newConference.time = date.getHours() + ":" + date.getMinutes();
+
+      this.newConference.participantIds = participantIds;
+
+      this.$refs.modalRoomDetails.hide();
+      this.$refs.modalAddConference.show();
     },
 
     getDocumentsForCase() {
@@ -546,37 +671,57 @@ export default {
     async getRooms() {
       try {
         let response = await getRooms(this.token);
-        if (response.status === 200) {
+        if (response.status === 200 && response.data.entity) {
           this.rooms = response.data.entity.map(room => {
             return {
               ...room,
               numberOfCases: 0
             };
           });
+        } else {
+          this.rooms = [];
         }
       } catch (e) {
         this.handleError(e);
       }
     },
 
-    async getEntries() {
+    async fetchEntries() {
       try {
-        let response = await fetchEntries({}, this.token);
-        if (response.status === 200) {
-          this.entries = response.data;
-        }
+        const searchParams = {
+          code: "http://molit.eu/fhir/NamingSystem/vitu-task|mtb-task",
+          "business-status": "tumor-conference-ready",
+          _sort: "-authored-on",
+          _include: ["Task:patient"]
+        };
+
+        const response = await fetchResources(config.FHIR_URL, "Task", searchParams, this.token);
+        const resources = mapFhirResponse(response);
+
+        this.entries = [];
+        resources
+          .filter(r => r.resourceType === "Task")
+          .forEach(task => {
+            const patient = resources.find(r => r.resourceType === "Patient" && r.id === task.for.reference.split("/")[1]);
+            this.entries.push({
+              id: task.id,
+              patient: {
+                dateOfBirth: patient.birthDate,
+                firstName: get(patient, "name[0].given", []).join(", "),
+                lastName: get(patient, "name[0].family", "")
+              },
+              task: task
+            });
+          });
       } catch (e) {
-        this.handleError(e);
+        this.handleError(e, true);
       }
     },
 
     async initialize() {
       try {
-        let response = await getStatuses({}, this.token);
-        if (response.status === 200) {
-          this.statuses = response.data.sort((e1, e2) => e1.orderNumber - e2.orderNumber);
-        }
-        await this.getEntries();
+        await this.fetchStatuses();
+        await this.fetchEntries();
         await this.getRooms();
       } catch (e) {
         this.handleError(e);
@@ -655,6 +800,10 @@ export default {
   color: map-get($theme-colors, "primary");
 }
 
+.conference-details {
+  margin-bottom: 1rem;
+}
+
 .draggable {
   min-height: 8rem;
 }
@@ -706,6 +855,10 @@ export default {
 
 .hint-past {
   color: red;
+}
+
+.pagination {
+  margin-top: 1rem;
 }
 
 @media (min-width: 576px) {

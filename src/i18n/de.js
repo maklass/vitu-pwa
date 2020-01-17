@@ -26,9 +26,10 @@ const de = {
     entry: "Eintrag | Einträge",
     filterEntries: "Einträge filtern",
     entriesPerPage: "Einträge pro Seite",
-    current: "aktuell",
+    noEntriesFound: "Es konnten keine Fälle gefunden werden.",
+    "in-progress": "aktuell",
     completed: "abgeschlossen",
-    canceled: "abgebrochen",
+    cancelled: "abgebrochen",
     statusDescription: "Statusbeschreibung",
     cases: "Fälle",
     details: "Detailansicht",
@@ -46,6 +47,7 @@ const de = {
       deceased: "Patient verstorben",
       other: "Sonstiger Grund"
     },
+    lastUpdated: "Updatedatum",
     reason: "Grund",
     status: "Status",
     statusCode: {
@@ -65,13 +67,15 @@ const de = {
       CANCELED: "Abgebrochen"
     },
     successfullyAddedCase: "Der Fall wurde erfolgreich zur Arbeitsliste hinzugefügt.",
+    successfullyEditedCase: "Der Fall wurde erfolgreich gespeichert.",
     deactivatedStateInfo: `Änderungen der Stati im Administrationsbereich können sich auf bereits zugewiesene Stati, die nachträglich deaktiviert werden, auswirken.
-    Diese werden farblich hervorgehoben. Eine Statusänderung des Falls wird empfohlen.`,
+    Diese werden farblich rot hervorgehoben. Eine Statusänderung des Falls wird empfohlen.`,
     deleteCase: "Fall löschen",
+    deleteCaseConfirmation: "Möchten Sie den Fall für den Patienten '{patient}' wirklich löschen?",
     deleteSuccessful: "Der Fall wurde erfolgreich gelöscht."
   },
   planner: {
-    conferencePlanner: "Konferenzplaner",
+    conferencePlanner: "Planer",
     schedulableCases: "Terminierbare Fälle",
     planner: "Planer",
     searchCase: "Fall suchen",
@@ -91,7 +95,9 @@ const de = {
     caseAlreadyExists: "Fall bereits vorhanden",
     caseAlreadyExistsDescription: "Der Fall wurde bereits zu dieser Tumorkonferenz hinzugefügt.",
     deleteConference: "Konferenz löschen",
-    hintConferenceInPast: "Die Uhrzeit für die Konferenz liegt in der Vergangenheit. Sind Sie sicher, dass Sie die Konferenz anlegen möchten?"
+    hintConferenceInPast: "Die Uhrzeit für die Konferenz liegt in der Vergangenheit. Sind Sie sicher, dass Sie die Konferenz anlegen möchten?",
+    createAppointmentSeries: "Serientermin erstellen",
+    cloneConference: "Konferenz klonen"
   },
   conference: {
     conference: "Konferenz",
@@ -207,16 +213,29 @@ const de = {
     room: "Dies ist ein Demo-Raum. Um andere Teilnehmer in diesen Raum einzuladen, senden Sie bitte diesen Link: {url}"
   },
   roles: {
+    roles: "Rollen",
     moderator: "Moderator",
     administrator: "Administrator"
   },
   admin: {
+    account: "Account",
     description: "Beschreibung",
     user: "Benutzer",
+    userList: "Benutzerliste",
+    addUser: "Benutzer hinzufügen",
+    usernameAlreadyPresent: "Der Nutzername '{username}' ist bereits vergeben.",
+    emailAlreadyPresent: "Es existiert bereits ein Nutzer mit der E-Mail Adresse '{email}'.",
+    deleteUser: "Benutzer löschen",
+    deleteUserConfirmation: "Möchten Sie den Nutzer '{user}' wirklich löschen?",
+    deleteUserSuccessful: "Der Benutzer wurde erfolgreich gelöscht.",
+    createUserSuccessful: "Der Benutzer wurde erfolgreich angelegt.",
+    editUserSuccessful: "Der Benutzer wurde erfolgreich gespeichert.",
+    editUser: "Benutzer bearbeiten",
     adminArea: "Adminbereich",
     statusList: "Statusliste",
     addStatus: "Status hinzufügen",
     editStatus: "Status bearbeiten",
+    statusAlreadyExists: "Es existiert bereits ein Status mit diesem Namen.",
     conferenceSettings: "Konferenzeinstellungen",
     bitrate: "Videoqualität",
     aspectRatio: "Format",
@@ -224,8 +243,11 @@ const de = {
     saveSuccessful: "Speichern erfolgreich",
     statusListDescription: "Sie können die Stati aus der Liste wählen und nicht verwendete Stati deaktivieren. Mittels drag&drop können Sie die Stati neu sortieren. Klicken Sie dann auf Speichern, um die Änderungen zu übernehmen.",
     statusListDescriptionHint: `Bitte beachten Sie, dass eine Änderung sich auf alle Tumorkonferenzen bezieht, bereits zugewiesene Stati, 
-    die nachträglich deaktiviert werden, werden in der Arbeitsliste nach Speichern der Änderung farblich hervorgehoben. Eine Statusänderung des Falls wird empfohlen.`,
+    die nachträglich deaktiviert werden, werden in der Arbeitsliste nach Speichern der Änderung farblich rot hervorgehoben. Eine Statusänderung des Falls wird empfohlen.`,
     active: "Aktiv",
+    inactive: "Inaktiv",
+    showInactiveStatuses: "Inaktive Status einblenden",
+    noInactiveStatusesFound: "Es wurden keine inaktiven Status gefunden.",
     persistentRoomEnabled: "Ad-hoc-Raum aktiv",
     persistentRoomName: "Ad-hoc-Raum Name",
     cutVideoStreams: "Videostreams zuschneiden",
@@ -240,15 +262,25 @@ const de = {
   },
   error: {
     errorOccurred: "Es ist ein Fehler aufgetreten",
+    warningOccurred: "Warnung",
     unauthorized: "Sie sind nicht berechtigt, diese Operation durchzuführen.",
     pageNotFound: "Seite nicht gefunden",
     pageNotFoundDescription: "Die angeforderte Seite konnte nicht gefunden werden. Bitte stellen Sie sicher, dass die Adresse korrekt ist.",
-    noConnectionToChat: "Die Verbindung zum Chat konnte nicht hergestellt werden."
+    noConnectionToChat: "Die Verbindung zum Chat konnte nicht hergestellt werden.",
+    clinicalDataNotAvailable: "Klinische Daten können nur innerhalb des Kliniknetzwerkes abgerufen werden."
   },
   firstName: "Vorname",
   lastName: "Nachname",
+  username: "Nutzername",
+  password: "Passwort",
+  passwordConfirmation: "Passwort bestätigen",
+  passwordCriteria: "Das Passwort muss folgende Kriterien erfüllen: mindestens 8 Zeichen, 1 Großbuchstabe, 1 Kleinbuchstabe und 1 Zahl.",
+  passwordsNotMatching: "Die Passwörter stimmen nicht überein.",
+  email: "E-Mail",
+  organization: "Organisation",
+  noEntriesFound: "Keine Einträge gefunden",
   patientId: "Patienten-ID",
-  caseNumber: "Fallnummer",
+  clinicalCaseNumber: "Fallnummer",
   sex: "Geschlecht",
   male: "männlich",
   female: "weiblich",
@@ -264,7 +296,22 @@ const de = {
   noInformation: "keine Angabe",
   print: "Drucken",
   yes: "Ja",
-  no: "Nein"
+  no: "Nein",
+  clinicalCase: "Fall",
+  addClinicalCase: "Fall hinzufügen",
+  editClinicalCase: "Fall bearbeiten",
+  new: "Neu",
+  addPatient: "Neuen Patient hinzufügen",
+  patientIdInfo: "Die ID, die dem Patient im Krankenhausinformationssystem (KIS) zugewiesen ist.",
+  caseIdInfo: "Die ID, die dem Fall im Krankenhausinformationssystem (KIS) zugewiesen ist.",
+  icd10Info: "Bitte geben Sie den ICD10 Code der Diagnose ein.",
+  setNewPassword: "Neues Passwort setzen",
+  hintTemporaryPassword: "Dies ist ein temporäres Passwort. Beim nächsten Login muss der Nutzer ein neues Passwort vergeben.",
+  patientCreatedSuccessfully: "Der Patient wurde erfolgreich angelegt.",
+  selectAnotherPatient: "Einen anderen Patienten auswählen",
+  placeholderDate: "JJJJ-MM-TT",
+  changePassword: "Passwort ändern",
+  close: "Schließen"
 };
 
 export default de;

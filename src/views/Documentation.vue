@@ -3,7 +3,7 @@
     <notification-panels :showError="error" :errorMessage="error" />
     <div class="container documentation">
       <breadcrumps :breadcrumps="[{ name: $t('documentation.documentation'), route: { name: 'documentation-overview' } }, { name: $t('documentation.newProtocol') }]" />
-      <div class="admin-header">
+      <div class="page-header">
         <h5 class="headline">{{ $t("documentation.newProtocol") }}</h5>
       </div>
       <div class="main">
@@ -252,7 +252,7 @@
               </div>
             </fieldset>
           </div>
-          <div class="admin-footer">
+          <div class="page-footer">
             <div class="spacer"></div>
             <button type="button" class="btn btn-secondary btn-cancel" @click="cancel">{{ $t("cancel") }}</button>
             <button type="button" class="btn btn-primary" @click="save" :disabled="saveButtonDisabled">{{ $t("admin.save") }}</button>
@@ -412,10 +412,11 @@ export default {
         searchAttributes: [
           {
             name: "Identifier",
-            value: "identifier"
+            value: "_id"
           }
         ],
         queryParams: {
+          identifier: "http://molit.eu/fhir/genomics/NamingSystem/cegat/reportID|",
           _sort: "-issued"
         },
         titleAttribute: {
@@ -813,7 +814,7 @@ legend {
   }
 }
 
-.admin-footer {
+.page-footer {
   border-top: 0;
 }
 

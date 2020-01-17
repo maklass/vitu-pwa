@@ -4,14 +4,13 @@
       <div class="form-row">
         <div class="col">
           <div class="form-group">
-            <select class="form-control" v-model="selectedUser">
-              <option selected disabled value="null">{{ $t("pleaseSelect") }}</option>
-              <option v-for="user in users" :key="user.id" :value="user">{{ getTitleForUser(user) }}</option>
-            </select>
+            <v-select v-model="selectedUser" label="name" :options="annotatedUsers" :placeholder="$t('pleaseSelect')" @search:blur="onBlur">
+              <div slot="no-options">{{ $t("noEntriesFound") }}</div>
+            </v-select>
           </div>
         </div>
         <div class="col-md-auto">
-          <button class="btn btn-secondary btn-add" :disabled="!selectedUser" @click="addParticipantsToRoom(selectedUser.id)">{{ $t("add") }}</button>
+          <button ref="addButton" class="btn btn-secondary btn-add" :disabled="!selectedUser" @click="addParticipantsToRoom(selectedUser.id)">{{ $t("add") }}</button>
         </div>
       </div>
       <list-item class="list-item" v-for="user in participants" :key="user.id" :title="getTitleForUser(user)" :subtitle="user.username">
@@ -49,7 +48,9 @@ export default {
     return {
       users: null,
       participants: null,
-      selectedUser: null
+      selectedUser: null,
+      first: 0,
+      max: 1000
     };
   },
 
@@ -57,7 +58,17 @@ export default {
     ...mapState({
       token: state => state.authentication.keycloak.token,
       roles: state => state.authentication.keycloak.realmAccess.roles
-    })
+    }),
+
+    annotatedUsers() {
+      if (this.users) {
+        return this.users.map(user => {
+          return { ...user, name: this.getTitleForUser(user) };
+        });
+      }
+
+      return [];
+    }
   },
 
   methods: {
@@ -67,7 +78,7 @@ export default {
 
     async getUsers() {
       try {
-        this.users = (await getUsers(this.token)).data.sort((e1, e2) => {
+        this.users = (await getUsers(this.token, this.first, this.max)).data.sort((e1, e2) => {
           if (e1.firstName && typeof e1.firstName === "string" && e2.firstName && typeof e2.firstName === "string") {
             return e1.firstName.localeCompare(e2.firstName);
           }
@@ -127,6 +138,12 @@ export default {
         return title;
       }
       return "-";
+    },
+
+    onBlur() {
+      if (this.$refs.addButton) {
+        this.$refs.addButton.focus();
+      }
     }
   },
 

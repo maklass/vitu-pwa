@@ -82,5 +82,11 @@ export function updateEntry(entry, token) {
     throw new Error();
   }
 
+  entry.patientDateOfBirth = entry.patient.dateOfBirth;
+  entry.patientFirstname = entry.patient.firstName;
+  entry.patientLastname = entry.patient.lastName;
+  entry.patientSex = entry.patient.sex;
+  entry.diagnoseOfTumor = entry.tumorDiagnose;
+
   return put(`${urlEntry}${entry.id}`, entry, token);
 }

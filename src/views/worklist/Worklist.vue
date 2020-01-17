@@ -1,7 +1,6 @@
 <template>
-  <div class="admin">
-    <side-nav />
-    <main class="admin-main">
+  <div class="worklist">
+    <main class="worklist-main">
       <router-view />
     </main>
   </div>
@@ -18,12 +17,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.admin {
+.worklist {
   background: white;
   flex: 1;
-}
-
-.admin-main {
-  margin-left: 260px;
 }
 </style>

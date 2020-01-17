@@ -1,12 +1,12 @@
 <template>
   <div>
-    <notification-panels :showError="error" :errorMessage="error" :showSuccess="showSuccess" :successMessage="$t('admin.saveSuccessful')" />
+    <notification-panels :showError="showError" :errorMessage="error" :showSuccess="showSuccess" :successMessage="$t('admin.saveSuccessful')" @closeSuccess="closeSuccess" @closeError="closeError" />
     <div class="container">
       <breadcrumps :breadcrumps="[{ name: $t('admin.adminArea'), route: { name: 'admin' } }, { name: $t('admin.conferenceSettings') }]" />
-      <div class="admin-header">
+      <div class="page-header">
         <h5 class="headline">{{ $t("admin.conferenceSettings") }}</h5>
       </div>
-      <div class="admin-body">
+      <div class="page-body">
         <spinner v-if="!settings && !error" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" />
         <div v-if="settings">
           <form @submit.prevent="save" ref="form">
@@ -55,7 +55,7 @@
           </form>
         </div>
       </div>
-      <div class="admin-footer">
+      <div class="page-footer">
         <div class="spacer"></div>
         <button class="btn btn-primary" @click="onSubmit">{{ $t("admin.save") }}</button>
       </div>
@@ -70,11 +70,14 @@ import config from "@/config/config";
 import aspectRatios from "@/model/aspect-ratios";
 import bitrates from "@/model/bitrates";
 import { handleAxiosError } from "@/util/error-util";
+import notifications from "@/mixins/notifications";
 
 import Spinner from "vue-simple-spinner";
 import { mapActions, mapState } from "vuex";
 
 export default {
+  mixins: [notifications],
+
   data() {
     return {
       showSuccess: false,

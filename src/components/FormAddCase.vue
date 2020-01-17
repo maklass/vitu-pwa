@@ -3,48 +3,31 @@
     <spinner v-if="loading" line-fg-color="#148898" line-bg-color="#99bfbf" size="large" :speed="1.5" />
     <div v-if="!loading">
       <form autocomplete="off" ref="addCaseForm" v-on:submit.prevent="submit">
-        <div class="form-row">
-          <div class="form-group col">
-            <label for="patientId">{{ $t("patientId") }}*</label>
-            <input required id="patientId" type="text" class="form-control" :placeholder="$t('patientId')" v-model="patientId" v-on:keyup.enter="submit" />
+        <fieldset>
+          <div class="form-group">
+            <label>{{ $t("worklist.patient") }}*</label>
+            <resource-select
+              :fhirBaseUrl="fhirBaseUrl"
+              :resourceName="'Patient'"
+              :titleAttribute="patientSelector.titleAttribute"
+              :subtitleAttributes="patientSelector.subtitleAttributes"
+              :searchAttributes="patientSelector.searchAttributes"
+              :queryParams="patientSelector.queryParams"
+              :searchInputPlaceholder="$t('search')"
+              :token="token"
+              :required="true"
+              @update="onPatientSelectorUpdate"
+            />
           </div>
-          <div class="form-group col">
-            <label for="caseNumber">{{ $t("caseNumber") }}*</label>
-            <input required id="caseNumber" type="text" class="form-control" :placeholder="$t('caseNumber')" v-model="caseNumber" v-on:keyup.enter="submit" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group col">
-            <label>{{ $t("firstName") }}*</label>
-            <input required type="text" class="form-control" :placeholder="$t('firstName')" v-model="firstName" v-on:keyup.enter="submit" />
-          </div>
-          <div class="form-group col">
-            <label>{{ $t("lastName") }}*</label>
-            <input required type="text" class="form-control" :placeholder="$t('lastName')" v-model="lastName" v-on:keyup.enter="submit" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group col">
-            <label for="birthDate">{{ $t("worklist.birthDate") }}*</label>
-            <input required id="birthDate" type="date" class="form-control" v-model="birthDate" />
-          </div>
-          <div class="form-group col">
-            <label>{{ $t("sex") }}*</label>
-            <select required class="form-control" v-model="sex">
-              <option selected disabled value="">{{ $t("pleaseSelect") }}</option>
-              <option value="M">{{ $t("male") }}</option>
-              <option value="F">{{ $t("female") }}</option>
-              <option value="D">{{ $t("diverse") }}</option>
-              <option value="UNKNOWN">{{ $t("unknown") }}</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group col">
+          <div class="form-group">
             <label for="diagnoseOfTumor">{{ $t("worklist.diagnosis") }}*</label>
             <input required id="diagnoseOfTumor" type="text" class="form-control" :placeholder="$t('worklist.diagnosis')" v-model="diagnoseOfTumor" v-on:keyup.enter="submit" />
           </div>
-        </div>
+          <div class="form-group">
+            <label for="clinicalCaseNumber">{{ $t("clinicalCaseNumber") }}*</label>
+            <input required id="clinicalCaseNumber" type="text" class="form-control" :placeholder="$t('clinicalCaseNumber')" v-model="clinicalCaseNumber" v-on:keyup.enter="submit" />
+          </div>
+        </fieldset>
       </form>
       <div class="button-panel">
         <button class="btn btn-secondary btn-cancel" @click="cancel">{{ $t("cancel") }}</button>
@@ -56,9 +39,12 @@
 
 <script>
 import Spinner from "vue-simple-spinner";
+import config from "@/config/config";
 import { mapState } from "vuex";
-
+import { ResourceSelector } from "@molit/fhir-components";
+import ResourceSelect from "@/components/ui/ResourceSelect";
 import { addEntry } from "../api/process-api";
+import { getStringFromHumanName } from "@molit/fhir-util";
 
 export default {
   props: {
@@ -71,14 +57,41 @@ export default {
   data() {
     return {
       patientId: null,
-      caseNumber: null,
+      clinicalCaseNumber: null,
       firstName: null,
       lastName: null,
       birthDate: null,
       diagnoseOfTumor: null,
       sex: "",
       vituID: null,
-      loading: false
+      loading: false,
+      fhirBaseUrl: config.FHIR_URL,
+
+      patientSelector: {
+        searchAttributes: [
+          {
+            name: "Name",
+            value: "name:contains"
+          }
+        ],
+        queryParams: {
+          _sort: "name",
+          active: true
+        },
+        titleAttribute: {
+          value: "name",
+          type: "HumanName"
+        },
+        subtitleAttributes: [
+          {
+            name: this.$t("worklist.birthDate"),
+            value: "birthDate",
+            type: "Date"
+          }
+        ]
+      },
+
+      patient: null
     };
   },
 
@@ -95,18 +108,27 @@ export default {
   methods: {
     clearFields() {
       this.patientId = null;
-      this.caseNumber = null;
+      this.clinicalCaseNumber = null;
       this.firstName = null;
       this.lastName = null;
       this.birthDate = null;
       this.diagnoseOfTumor = null;
       this.sex = null;
       this.vituID = null;
+      this.patient = null;
     },
 
     cancel() {
       this.$emit("cancel");
       this.clearFields();
+    },
+
+    onPatientSelectButtonClicked() {
+      this.showPatientSelector = true;
+    },
+
+    onPatientSelectorUpdate(patient) {
+      this.patient = patient;
     },
 
     async submit() {
@@ -116,7 +138,7 @@ export default {
       } else {
         this.loading = true;
         try {
-          await addEntry(this.caseNumber, this.patientId, this.firstName, this.lastName, this.diagnoseOfTumor, this.birthDate, this.sex, this.firstStatus, "", this.token);
+          await addEntry(this.clinicalCaseNumber, this.patient.id, getStringFromHumanName(this.patient.name), "", this.diagnoseOfTumor, this.patient.birthDate, this.patient.sex, this.firstStatus, "", this.token);
           this.loading = false;
           this.$emit("success");
           this.clearFields();
@@ -128,6 +150,8 @@ export default {
   },
 
   components: {
+    ResourceSelect,
+    ResourceSelector,
     Spinner
   }
 };
@@ -141,6 +165,15 @@ export default {
 
   .btn-cancel {
     margin-right: 0.5rem;
+  }
+}
+
+.legend-button-panel {
+  display: flex;
+  justify-content: space-between;
+
+  button {
+    white-space: nowrap;
   }
 }
 </style>

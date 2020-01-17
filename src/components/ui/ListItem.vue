@@ -4,8 +4,15 @@
       <slot name="icon" />
     </div>
     <div class="information">
-      <div class="title">{{ title }}</div>
-      <div class="subtitle">{{ subtitle }}</div>
+      <div class="title">
+        <router-link class="link" :to="to" v-if="to">{{ title }}</router-link>
+        <span v-else>{{ title }}</span>
+      </div>
+      <div class="subtitle">
+        <slot name="subtitle">
+          {{ subtitle }}
+        </slot>
+      </div>
     </div>
     <div class="actions">
       <slot name="actions" />
@@ -19,6 +26,9 @@ export default {
     title: {
       type: String,
       required: true
+    },
+    to: {
+      type: Object
     },
     subtitle: {
       type: String
@@ -46,6 +56,12 @@ export default {
   .information {
     line-height: 1.2;
     flex: 1;
+  }
+
+  .title {
+    .link {
+      color: inherit;
+    }
   }
 
   .subtitle {

@@ -1,9 +1,19 @@
 <template>
   <div class="documentation-overview-wrapper">
-    <notification-panels :showError="error" :errorMessage="error" :showSuccess="showSuccess" :successMessage="$t('admin.saveSuccessful')" />
+    <notification-panels
+      :showError="showError"
+      :errorMessage="error"
+      :showWarning="showWarning"
+      :warning="warning"
+      :showSuccess="showSuccess"
+      :successMessage="success"
+      @closeSuccess="closeSuccess"
+      @closeWarning="closeWarning"
+      @closeError="closeError"
+    />
     <div class="documentation-overview">
       <div class="container">
-        <div class="admin-header">
+        <div class="page-header">
           <h5 class="headline">{{ $t("documentation.documentation") }}</h5>
           <div class="spacer" />
           <router-link class="btn btn-primary" tag="button" :to="{ name: 'documentation-new' }">{{ $t("documentation.newProtocol") }}</router-link>
@@ -11,16 +21,36 @@
         <div class="main">
           <h6>{{ $t("documentation.existingProtocols") }}</h6>
         </div>
-        <paginated-list :fhirBaseUrl="fhirBaseUrl" resourceName="Composition" :searchParams="searchParams" :searchAttributes="searchAttributes" :searchInputPlaceholder="$t('documentation.searchProtocol')" @update="onBundleUpdated">
+        <paginated-list
+          :fhirBaseUrl="fhirBaseUrl"
+          resourceName="Composition"
+          :searchParams="searchParams"
+          :searchAttributes="searchAttributes"
+          :searchInputPlaceholder="$t('documentation.searchProtocol')"
+          @update="onBundleUpdated"
+          @error="handlePaginatedError"
+        >
           <div v-if="protocols && protocols.length">
-            <list-item class="list-item" v-for="protocol in protocols" :key="protocol.id" :title="protocol.subject.display" :subtitle="$d(new Date(protocol.date))" @click="onClick(protocol)">
+            <list-item class="list-item" v-for="protocol in protocols" :key="protocol.id" :title="protocol.subject.display" :subtitle="protocol.id + ' · ' + $d(new Date(protocol.date))" @click="onClick(protocol)">
               <template slot="icon">
                 <file-document-icon class="icon" />
               </template>
             </list-item>
           </div>
+          <template slot="firstPage">
+            <chevron-double-left-icon />
+          </template>
+          <template slot="previousPage">
+            <chevron-left-icon />
+          </template>
+          <template slot="nextPage">
+            <chevron-right-icon />
+          </template>
+          <template slot="lastPage">
+            <chevron-double-right-icon />
+          </template>
         </paginated-list>
-        <spinner v-if="!protocols" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" />
+        <spinner v-if="loading" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" />
         <div v-if="protocols && !protocols.length">{{ $t("documentation.noProtocolsFound") }}</div>
       </div>
     </div>
@@ -31,14 +61,20 @@
 import ListItem from "@/components/ui/ListItem";
 import NotificationPanels from "@/components/ui/NotificationPanels";
 import { mapFhirData } from "@molit/fhir-api";
-import { handleAxiosError } from "@/util/error-util";
 import config from "@/config/config";
+import notifications from "@/mixins/notifications";
 
+import ChevronLeftIcon from "vue-material-design-icons/ChevronLeft";
+import ChevronDoubleLeftIcon from "vue-material-design-icons/ChevronDoubleLeft";
+import ChevronRightIcon from "vue-material-design-icons/ChevronRight";
+import ChevronDoubleRightIcon from "vue-material-design-icons/ChevronDoubleRight";
 import FileDocumentIcon from "vue-material-design-icons/FileDocument";
 import Spinner from "vue-simple-spinner";
 import { PaginatedList } from "@molit/fhir-components";
 
 export default {
+  mixins: [notifications],
+
   data() {
     return {
       error: null,
@@ -53,7 +89,8 @@ export default {
           name: "Subject",
           value: "subject:Patient.name:contains"
         }
-      ]
+      ],
+      loading: true
     };
   },
 
@@ -64,11 +101,6 @@ export default {
   },
 
   methods: {
-    handleError(error) {
-      this.error = handleAxiosError(error, this);
-      window.scrollTo(0, 0);
-    },
-
     onClick(protocol) {
       this.$router.push({ name: "documentation", params: { id: protocol.id } });
     },
@@ -84,6 +116,12 @@ export default {
 
     onBundleUpdated(bundle) {
       this.protocols = mapFhirData(bundle);
+      this.loading = false;
+    },
+
+    handlePaginatedError(e) {
+      this.handleError(e, true);
+      this.loading = false;
     }
   },
 
@@ -92,6 +130,10 @@ export default {
   },
 
   components: {
+    ChevronDoubleLeftIcon,
+    ChevronDoubleRightIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
     FileDocumentIcon,
     ListItem,
     NotificationPanels,

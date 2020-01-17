@@ -128,7 +128,6 @@
 <script>
 import DiagnosticReport from "@/components/fhir/DiagnosticReport";
 import FormAddCase from "@/components/FormAddCase";
-import Patient from "@/components/fhir/Patient";
 import Procedure from "@/components/fhir/Procedure";
 import { getStatuses, fetchEntries, updateEntry, deleteEntry } from "../api/process-api";
 import { handleAxiosError } from "@/util/error-util";
@@ -474,7 +473,6 @@ export default {
     FolderAccountIcon,
     FormAddCase,
     NotificationPanels,
-    Patient,
     Procedure,
     Spinner,
     TimerSandEmptyIcon

@@ -13,10 +13,11 @@
           </div>
           <div class="conferences">
             <!-- FIXME: USE ID AS INDEX -->
-            <router-link v-for="(conference, index) in filteredRooms" :key="index" tag="div" :to="{ name: 'conference', params: { room: conference.janusId } }">
+            <router-link v-for="(conference, index) in paginatedRooms" :key="index" tag="div" :to="{ name: 'conference', params: { room: conference.janusId } }">
               <conference-card :conference="conference" />
             </router-link>
           </div>
+          <b-pagination class="pagination" align="center" :total-rows="filteredRooms.length" :per-page="max" v-model="currentPage" />
         </div>
         <div class="other-conferences" v-if="conferenceSettings && conferenceSettings.persistentRoomEnabled">
           <h6>{{ $t("conference.otherConferences") }}</h6>
@@ -48,6 +49,8 @@ export default {
     return {
       error: null,
       rooms: null,
+      max: 20,
+      currentPage: 1,
       searchTerm: null
     };
   },
@@ -76,7 +79,7 @@ export default {
           return false;
         }
 
-        if (room.tumorConference && room.tumorConference.date && new Date().getTime() > new Date(room.tumorConference.date).getTime() + 1000 * 60 * 60 * 12) {
+        if (room.tumorConference && room.tumorConference.date && new Date().getTime() > new Date(room.tumorConference.date).getTime() + 1000 * 60 * 60 * 48) {
           return false;
         }
 
@@ -95,6 +98,20 @@ export default {
 
         return true;
       });
+      // .sort((c1, c2) => {
+      //   if (c1 && c1.description && c2 && c2.description) {
+      //     return c1.description.localeCompare(c2.description);
+      //   }
+      //   return 0;
+      // });
+    },
+
+    paginatedRooms() {
+      if (!this.filteredRooms) {
+        return [];
+      }
+
+      return this.filteredRooms.slice((this.currentPage - 1) * this.max, this.currentPage * this.max);
     },
 
     demo() {
@@ -105,7 +122,9 @@ export default {
   methods: {
     async getRooms() {
       try {
-        this.rooms = (await getRoomsAccessible(this.token)).data.entity;
+        const response = await getRoomsAccessible(this.token);
+        this.total = response.data.total;
+        this.rooms = response.data.entity;
       } catch (e) {
         this.handleError(e);
       }
@@ -154,5 +173,9 @@ export default {
 .conference-overview {
   padding-top: 15px;
   padding-bottom: 15px;
+}
+
+.pagination {
+  margin-top: 1rem;
 }
 </style>

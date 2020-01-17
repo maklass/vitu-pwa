@@ -1,31 +1,61 @@
 <template>
   <div>
-    <notification-panels :showError="error" :errorMessage="error" :showSuccess="showSuccess" :successMessage="$t('admin.saveSuccessful')" />
+    <notification-panels
+      :showError="showError"
+      :errorMessage="error"
+      :showWarning="showWarning"
+      :warning="warning"
+      :showSuccess="showSuccess"
+      :successMessage="success"
+      @closeSuccess="closeSuccess"
+      @closeWarning="closeWarning"
+      @closeError="closeError"
+    />
     <div class="container status-list">
       <breadcrumps :breadcrumps="[{ name: $t('admin.adminArea'), route: { name: 'admin' } }, { name: $t('admin.statusList') }]" />
-      <div class="admin-header">
+      <div class="page-header">
         <h5 class="headline">{{ $t("admin.statusList") }}</h5>
-        <div>
-          {{ $t("admin.statusListDescription") }} <strong>{{ $t("hint") }}:</strong> {{ $t("admin.statusListDescriptionHint") }}
+        <div class="spacer"></div>
+        <router-link class="btn btn-primary" tag="button" :to="{ name: 'status-new' }">{{ $t("admin.addStatus") }}</router-link>
+      </div>
+      <div>
+        {{ $t("admin.statusListDescription") }} <strong>{{ $t("hint") }}:</strong> {{ $t("admin.statusListDescriptionHint") }}
+      </div>
+      <div class="page-body">
+        <spinner v-if="loading" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" />
+        <div v-if="!loading">
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" v-model="showInactiveStatuses" id="show-inactive" />
+            <label class="form-check-label" for="show-inactive">
+              {{ $t("admin.showInactiveStatuses") }}
+            </label>
+          </div>
+          <div v-if="showInactiveStatuses" class="mb-3">
+            <h6>{{ $t("admin.inactive") }}</h6>
+            <list-item class="list-item" v-for="status in disabledStatuses" :key="status.code" :value="status.code" :title="status.display">
+              <template slot="icon">
+                -
+              </template>
+              <template slot="actions">
+                <router-link :to="{ name: 'status', params: { id: status.code } }"><pencil-icon /></router-link>
+              </template>
+            </list-item>
+            <div v-if="!disabledStatuses || !disabledStatuses.length">{{ $t("admin.noInactiveStatusesFound") }}</div>
+          </div>
+          <h6>{{ $t("admin.active") }}</h6>
+          <vue-draggable :list="statuses" ghost-class="ghost" @change="change" class="cursor-grab">
+            <list-item class="list-item" v-for="status in statuses" :key="status.code" :value="status.code" :title="status.display">
+              <template slot="icon">
+                {{ status.extension && status.extension[0] ? status.extension[0].valueDecimal + 1 : "" }}
+              </template>
+              <template slot="actions">
+                <router-link :to="{ name: 'status', params: { id: status.code } }"><pencil-icon /></router-link>
+              </template>
+            </list-item>
+          </vue-draggable>
         </div>
-        <!-- <div class="spacer"></div>
-      <router-link class="btn btn-primary" tag="button" :to="{ name: 'status-new' }">{{ $t("admin.addStatus") }}</router-link> -->
       </div>
-      <div class="admin-body">
-        <spinner v-if="(!statuses && !error) || (loading && !error)" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" />
-        <vue-draggable :list="statuses" ghost-class="ghost" v-if="!loading" @change="change">
-          <list-item :class="['list-item', { disabled: status.disabled }]" v-for="status in statuses" :key="status.id" :value="status.id" :title="$t(`worklist.statusCode.${status.description}`)">
-            <template slot="icon">
-              <!-- {{ index + 1 }} -->
-              {{ status.orderNumber }}
-            </template>
-            <template slot="actions">
-              <router-link :to="{ name: 'status', params: { id: status.id } }"><pencil-icon /></router-link>
-            </template>
-          </list-item>
-        </vue-draggable>
-      </div>
-      <div class="admin-footer">
+      <div class="page-footer">
         <div class="spacer"></div>
         <button class="btn btn-primary" @click="save" :disabled="saveButtonDisabled">{{ $t("admin.save") }}</button>
       </div>
@@ -39,23 +69,27 @@ import Spinner from "vue-simple-spinner";
 import VueDraggable from "vuedraggable";
 import { mapState } from "vuex";
 
+import notifications from "@/mixins/notifications";
 import Breadcrumps from "@/components/ui/Breadcrumps";
 import ListItem from "@/components/ui/ListItem";
 import NotificationPanels from "@/components/ui/NotificationPanels";
-import { getStatuses, updateStatusesBatch } from "@/api/process-api";
 import { setTimeout } from "timers";
-import { handleAxiosError } from "@/util/error-util";
 import config from "@/config/config";
+import { fetchResources, mapFhirResponse, updateResource } from "@molit/fhir-api";
 
 export default {
+  mixins: [notifications],
+
   data() {
     return {
+      valueSet: null,
+      codeSystem: null,
       statuses: null,
-      error: null,
-      showSuccess: false,
+      disabledStatuses: [],
       changed: false,
       loading: true,
-      loadingTime: 300
+      loadingTime: 300,
+      showInactiveStatuses: false
     };
   },
 
@@ -71,25 +105,28 @@ export default {
   },
 
   methods: {
-    handleError(error) {
-      this.error = handleAxiosError(error, this);
-      window.scrollTo(0, 0);
-    },
-
-    async getStatuses() {
+    async fetchStatuses() {
       try {
-        this.statuses = (await getStatuses({}, this.token)).data.sort((a, b) => a.orderNumber - b.orderNumber);
+        this.valueSet = mapFhirResponse(await fetchResources(config.FHIR_URL, "ValueSet", { url: "http://molit.eu/fhir/ValueSet/vitu-workinglist" }, this.token))[0];
+        this.codeSystem = mapFhirResponse(await fetchResources(config.FHIR_URL, "CodeSystem", { url: "http://molit.eu/fhir/CodeSystem/vitu-workinglist" }, this.token))[0];
+        if (!this.valueSet) {
+          throw new Error("ValueSet 'vitu-worklist' not found on server.");
+        }
+        if (!this.codeSystem) {
+          throw new Error("CodeSystem 'vitu-worklist' not found on server.");
+        }
+        this.statuses = this.valueSet.compose.include[0].concept || [];
+        this.disabledStatuses = this.codeSystem.concept.filter(sc => !this.statuses.find(sv => sc.code === sv.code));
+        this.loading = false;
       } catch (e) {
-        this.handleError(e);
+        this.loading = false;
+        this.handleError(e, true);
       }
     },
 
     handleQueryParams() {
       if (this.$route.query.success) {
-        this.showSuccess = true;
-        setTimeout(() => {
-          this.showSuccess = false;
-        }, config.SUCCESS_HEADER_TIMEOUT);
+        this.success = this.$t("admin.saveSuccessful");
       }
     },
 
@@ -99,21 +136,19 @@ export default {
 
     reload() {
       this.statuses = null;
+      this.disabledStatuses = [];
       this.loading = true;
-      this.getStatuses();
+      this.fetchStatuses();
       setTimeout(() => (this.loading = false), this.loadingTime);
     },
 
     async save() {
       try {
-        this.statuses.map((status, index) => (status.orderNumber = index + 1));
+        this.statuses.map((status, index) => (status.extension[0].valueDecimal = index));
         this.loading = true;
-        await updateStatusesBatch(this.statuses, this.token);
+        await updateResource(config.FHIR_URL, this.valueSet, this.token);
         this.reload();
-        this.showSuccess = true;
-        setTimeout(() => {
-          this.showSuccess = false;
-        }, config.SUCCESS_HEADER_TIMEOUT);
+        this.success = this.$t("admin.saveSuccessful");
       } catch (e) {
         this.handleError(e);
       }
@@ -121,7 +156,7 @@ export default {
   },
 
   mounted() {
-    this.getStatuses();
+    this.fetchStatuses();
     this.handleQueryParams();
     setTimeout(() => (this.loading = false), this.loadingTime);
   },
@@ -142,9 +177,12 @@ export default {
   background: white;
 }
 
+.cursor-grab {
+  cursor: grab;
+}
+
 .list-item {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  cursor: grab;
 
   &:last-child {
     border: 0;
@@ -156,12 +194,8 @@ export default {
   }
 }
 
-.admin-header {
-  display: block;
-
-  .headline {
-    margin-bottom: 0.4rem;
-  }
+.page-header {
+  margin-bottom: 1rem;
 }
 
 .ghost {

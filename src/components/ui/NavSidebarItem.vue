@@ -62,7 +62,6 @@ export default {
   color: rgba(0, 0, 0, 0.8);
 
   &:hover {
-    color: inherit;
     text-decoration: none;
   }
 }
@@ -77,6 +76,9 @@ export default {
 }
 
 .router-link-active {
+  color: $vitu-green;
+  font-weight: 500;
+
   .side-nav-item {
     background: rgba(0, 0, 0, 0.07);
   }

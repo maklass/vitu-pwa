@@ -3,7 +3,7 @@
     <notification-panels :showError="error" :errorMessage="error" :showSuccess="showSuccess" :successMessage="$t('admin.saveSuccessful')" />
     <div class="container documentation">
       <breadcrumps class="breadcrumps" :breadcrumps="[{ name: $t('documentation.documentation'), route: { name: 'documentation-overview' } }, { name: $t('documentation.documentation') + ' ' + $route.params.id }]" />
-      <div class="admin-header">
+      <div class="page-header">
         <h5 class="headline">{{ $t("documentation.protocol") + " " + $route.params.id }}</h5>
         <div class="spacer"></div>
         <button class="btn btn-secondary" type="button" @click="print">{{ $t("print") }}</button>
@@ -184,7 +184,7 @@
               </div>
             </div>
           </fieldset>
-          <fieldset>
+          <fieldset class="signatures">
             <div class="legend-button-panel">
               <legend>{{ $tc("documentation.signature", 2) }}</legend>
             </div>
@@ -243,6 +243,10 @@
               hinsichtlich des Ansprechens auf das Medikament.
             </p>
           </fieldset>
+          <div style="display: flex" class="page-footer">
+            <div class="spacer"></div>
+            <router-link class="btn btn-secondary btn-cancel" :to="{ name: 'documentation-overview' }">{{ $t("close") }}</router-link>
+          </div>
         </form>
         <spinner v-else line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" />
       </div>
@@ -495,5 +499,13 @@ label {
 
 .evidence-levels {
   page-break-before: always;
+}
+
+.signatures .col-form-label {
+  text-align: initial;
+}
+
+.page-footer {
+  border-top: 0;
 }
 </style>

@@ -7,7 +7,8 @@
     <b-collapse is-nav id="nav_collapse">
       <b-navbar-nav>
         <b-nav-item :to="{ name: 'home' }">{{ $t("home.home") }}</b-nav-item>
-        <b-nav-item v-if="isModerator || isAdmin" :to="{ name: 'worklist' }">{{ $tc("worklist.worklist", 1) }}</b-nav-item>
+        <!-- <b-nav-item v-if="isModerator || isAdmin" :to="{ name: 'worklist-old' }">{{ $tc("worklist.worklist", 1) }}_old</b-nav-item> -->
+        <b-nav-item v-if="isModerator || isAdmin" :to="{ name: 'worklist' }" active-class="active">{{ $tc("worklist.worklist", 1) }}</b-nav-item>
         <b-nav-item v-if="isModerator || isAdmin" :to="{ name: 'planner' }">{{ $tc("planner.conferencePlanner", 1) }}</b-nav-item>
         <b-nav-item :to="{ name: 'conference-overview' }">{{ $tc("conference.videoConference", 1) }}</b-nav-item>
         <b-nav-item v-if="isModerator || isAdmin" :disabled="deactivateDocumentation" :to="{ name: 'documentation-overview' }">{{ $tc("documentation.documentation", 1) }}</b-nav-item>
@@ -24,6 +25,8 @@
             <div v-if="isModerator">- {{ $t("roles.moderator") }}</div>
             <div v-if="isAdmin">- {{ $t("roles.administrator") }}</div>
           </b-dropdown-header>
+          <b-dropdown-divider />
+          <b-dropdown-item :href="changePasswordUrl" target="_blank">{{ $t("changePassword") }}</b-dropdown-item>
           <b-dropdown-divider />
           <b-dropdown-item @click="logout()">{{ $t("navbar.signOut") }}</b-dropdown-item>
         </b-nav-item-dropdown>
@@ -47,6 +50,10 @@ export default {
       keycloak: state => state.authentication.keycloak,
       roles: state => state.authentication.keycloak.realmAccess.roles
     }),
+
+    changePasswordUrl() {
+      return `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/account/password`;
+    },
 
     fullUserName() {
       if (this.keycloak) {
@@ -97,7 +104,7 @@ export default {
 .navbar {
   background: white;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  height: 66px;
+  min-height: 66px;
 }
 
 .account-icon {

@@ -34,6 +34,7 @@ module.exports = {
         favicons: {
           appName: "VITU",
           start_url: "../",
+          theme_color: "#148898",
           android: true,
           appleIcon: true,
           appleStartup: true,

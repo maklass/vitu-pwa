@@ -20,7 +20,7 @@ const config = {
     persistentRoomName: "Allgemeiner Konferenzraum",
     showDateTimeInTitle: true
   },
-  SUCCESS_HEADER_TIMEOUT: 5000,
+  SUCCESS_HEADER_TIMEOUT: 10000,
   ADHOC_ROOM_DESCRIPTION: "fc2d99de-29fe-4d08-8dc8-92167876551a",
   MAX_LENGTH_CONFERENCE_NAME: 50,
   DEACTIVATE_DOCUMENTATION: process.env.VUE_APP_DEACTIVATE_DOCUMENTATION === "true"

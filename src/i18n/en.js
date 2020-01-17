@@ -4,7 +4,7 @@ const en = {
     loading: "Loading..."
   },
   login: {
-    title: "VITU - Virtual tumor board",
+    title: "VITU - Virtual Tumor Board",
     subtitle: "Please sign in to participate in a conference.",
     text: "Please sign in to participate in a conference.",
     buttonText: "Sign in",
@@ -26,9 +26,10 @@ const en = {
     entry: "Entry | Entries",
     filterEntries: "Filter entries",
     entriesPerPage: "Entries per page",
-    current: "current",
+    noEntriesFound: "No cases found.",
+    "in-progress": "current",
     completed: "completed",
-    canceled: "canceled",
+    cancelled: "canceled",
     statusDescription: "Status description",
     cases: "Cases",
     details: "Details",
@@ -46,6 +47,7 @@ const en = {
       deceased: "Patient deceased",
       other: "Other"
     },
+    lastUpdated: "Last updated",
     reason: "Reason",
     status: "Status",
     statusCode: {
@@ -65,13 +67,15 @@ const en = {
       CANCELED: "Canceled"
     },
     successfullyAddedCase: "The case has been successfully added to the worklist.",
+    successfullyEditedCase: "The case was edited successfully.",
     deactivatedStateInfo: `Changes of the states in the administration area can affect already assigned states, which are deactivated afterwards.
     These are highlighted in red. A status change of the case is recommended.`,
     deleteCase: "Delete case",
+    deleteCaseConfirmation: "Do you really want to delete the case for the patient '{patient}'?",
     deleteSuccessful: "The case was deleted successfully."
   },
   planner: {
-    conferencePlanner: "Conference planner",
+    conferencePlanner: "Planner",
     schedulableCases: "Schedulable cases",
     planner: "Planner",
     searchCase: "Search case",
@@ -91,7 +95,9 @@ const en = {
     caseAlreadyExists: "Case already exists",
     caseAlreadyExistsDescription: "The case was already assigned to this conference.",
     deleteConference: "Delete conference",
-    hintConferenceInPast: "The time for the conference is in the past. Are you sure you want to create the conference?"
+    hintConferenceInPast: "The time for the conference is in the past. Are you sure you want to create the conference?",
+    createAppointmentSeries: "Create appointment series",
+    cloneConference: "Clone conference"
   },
   conference: {
     conference: "Conference",
@@ -207,16 +213,29 @@ const en = {
     room: "This room is for demo purposes only. To invite other participants to this room, please share this link: {url}"
   },
   roles: {
+    roles: "Roles",
     moderator: "Moderator",
     administrator: "Administrator"
   },
   admin: {
+    account: "Account",
     description: "Description",
     user: "User",
+    userList: "User list",
+    addUser: "Add user",
+    usernameAlreadyPresent: "The username '{username}' is already taken.",
+    emailAlreadyPresent: "There is already a user with the email '{email}'.",
+    deleteUser: "Delete user",
+    deleteUserConfirmation: "Do you really want to delete the user '{user}'?",
+    deleteUserSuccessful: "The user was deleted successfully.",
+    createUserSuccessful: "The user was created successfully.",
+    editUserSuccessful: "The user was saved successfully.",
+    editUser: "Edit user",
     adminArea: "Admin area",
     statusList: "Status list",
     addStatus: "Add status",
     editStatus: "Edit status",
+    statusAlreadyExists: "A status with this name already exists.",
     conferenceSettings: "Conference settings",
     bitrate: "Video quality",
     aspectRatio: "Aspect ratio",
@@ -226,6 +245,9 @@ const en = {
     statusListDescriptionHint: `Please note that a change applies to all tumor conferences; states that have already been assigned and are subsequently deactivated are highlighted in color in the worklist 
     after the change has been saved. A status change of the case is recommended.`,
     active: "Active",
+    inactive: "Inactive",
+    showInactiveStatuses: "Show inactive statuses",
+    noInactiveStatusesFound: "No inactive statuses found.",
     persistentRoomEnabled: "Persistent room enabled",
     persistentRoomName: "Persistent room name",
     cutVideoStreams: "Cut video streams",
@@ -240,15 +262,25 @@ const en = {
   },
   error: {
     errorOccurred: "An error occurred",
+    warningOccurred: "Warning",
     unauthorized: "You are not authorized to execute this operation.",
     pageNotFound: "Page not found",
     pageNotFoundDescription: "The requested page could not be found. Please make sure that you entered the address correctly.",
-    noConnectionToChat: "The connection to the chat could not be established."
+    noConnectionToChat: "The connection to the chat could not be established.",
+    clinicalDataNotAvailable: "Clinical data can only be accessed from within the organization."
   },
   firstName: "First name",
   lastName: "Last name",
+  username: "User name",
+  password: "Password",
+  passwordConfirmation: "Password confirmation",
+  passwordCriteria: "The password needs to meet the following criteria: minimum of 8 characters, 1 uppercase letter, 1 lowercase letter and 1 digit.",
+  passwordsNotMatching: "The passwords don't match.",
+  email: "Email",
+  organization: "Organization",
+  noEntriesFound: "No entries found",
   patientId: "Patient ID",
-  caseNumber: "Case number",
+  clinicalCaseNumber: "Case number",
   sex: "Sex",
   male: "male",
   female: "female",
@@ -264,7 +296,22 @@ const en = {
   noInformation: "no information",
   print: "Print",
   yes: "Yes",
-  no: "No"
+  no: "No",
+  clinicalCase: "Case",
+  addClinicalCase: "Add case",
+  editClinicalCase: "Edit case",
+  new: "New",
+  addPatient: "Add new patient",
+  patientIdInfo: "The id the patient has in the hospital information system (his).",
+  caseIdInfo: "The id the case has in the hospital information system (his).",
+  icd10Info: "Please enter IDC10 code.",
+  setNewPassword: "Set new password",
+  hintTemporaryPassword: "This is a temporary password. The user has to set a new password on the next login.",
+  patientCreatedSuccessfully: "The patient has been created successfully.",
+  selectAnotherPatient: "Select another patient",
+  placeholderDate: "YYYY-MM-DD",
+  changePassword: "Change password",
+  close: "Close"
 };
 
 export default en;

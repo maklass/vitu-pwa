@@ -1,33 +1,35 @@
 <template>
   <div>
-    <notification-panels :showError="error" :errorMessage="error" :showSuccess="false" />
+    <notification-panels :showError="showError" :errorMessage="error" :showSuccess="showSuccess" :successMessage="success" @closeSuccess="closeSuccess" @closeError="closeError" />
     <div class="container">
       <breadcrumps :breadcrumps="[{ name: $t('admin.adminArea'), route: { name: 'admin' } }, { name: $t('admin.statusList'), route: { name: 'statuses' } }, { name: $t('worklist.status') }]" />
-      <div class="admin-header">
+      <div class="page-header">
         <h5 v-if="!isExistingStatus">{{ $t("admin.addStatus") }}</h5>
         <h5 v-else>{{ $t("admin.editStatus") }}</h5>
       </div>
-      <div class="admin-body">
-        <div v-if="status">
-          <div class="form-group row">
-            <label for="description" class="col-md-2 col-form-label">{{ $t("admin.description") }}</label>
-            <div class="col-md-10">
-              <input type="text" class="form-control" id="description" readonly :placeholder="$t('admin.description')" :value="$t(`worklist.statusCode.${status.description}`)" />
+      <div class="page-body">
+        <div v-if="status && !loading">
+          <form @submit.prevent="save" ref="form" autocomplete="off">
+            <div class="form-group row">
+              <label for="description" class="col-md-3 col-form-label">{{ $t("admin.description") }}</label>
+              <div class="col-md-9">
+                <input type="text" required class="form-control" id="description" :placeholder="$t('admin.description')" v-model="status.display" />
+              </div>
             </div>
-          </div>
-          <div class="form-group row">
-            <label for="active" class="col-sm-2 col-form-label">{{ $t("admin.active") }}</label>
-            <div class="col-sm-10 active-container">
-              <input type="checkbox" id="active" v-model="statusActive" />
+            <div class="form-group row">
+              <label for="active" class="col-md-3 col-form-label">{{ $t("admin.active") }}</label>
+              <div class="col-md-9 active-container">
+                <input type="checkbox" id="active" v-model="statusActive" />
+              </div>
             </div>
-          </div>
+          </form>
         </div>
-        <spinner v-if="!status && !error" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" />
+        <spinner v-if="(loading || !status) && !error" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" />
       </div>
-      <div class="admin-footer">
+      <div class="page-footer">
         <div class="spacer"></div>
         <button class="btn btn-secondary btn-cancel" @click="cancel">{{ $t("cancel") }}</button>
-        <button class="btn btn-primary" @click="save" :disabled="saveButtonDisabled">{{ $t("admin.save") }}</button>
+        <button class="btn btn-primary" :disabled="error" @click="save">{{ $t("admin.save") }}</button>
       </div>
     </div>
   </div>
@@ -35,19 +37,28 @@
 
 <script>
 import { mapState } from "vuex";
-import { getStatusById, updateStatus } from "@/api/process-api";
 import Spinner from "vue-simple-spinner";
 
 import Breadcrumps from "@/components/ui/Breadcrumps";
 import NotificationPanels from "@/components/ui/NotificationPanels";
-import { handleAxiosError } from "@/util/error-util";
+import notifications from "@/mixins/notifications";
+import config from "@/config/config";
+import { fetchResources, mapFhirResponse, updateResource } from "@molit/fhir-api";
+import { statusTemplate } from "@/templates/fhir-templates";
+import { cloneDeep } from "lodash";
 
 export default {
+  mixins: [notifications],
+
   data() {
     return {
       status: null,
-      error: null,
-      changed: false
+      statuses: null,
+      changed: false,
+      valueSet: null,
+      codeSystem: null,
+      loading: false,
+      statusActive: false
     };
   },
 
@@ -57,24 +68,8 @@ export default {
       roles: state => state.authentication.keycloak.realmAccess.roles
     }),
 
-    statusActive: {
-      get() {
-        if (this.status) {
-          return !this.status.disabled;
-        }
-      },
-      set(value) {
-        this.status.disabled = !value;
-        this.changed = true;
-      }
-    },
-
     isExistingStatus() {
       return this.$route.params.id && this.$route.params.id !== "new";
-    },
-
-    saveButtonDisabled() {
-      return !this.changed || this.error;
     }
   },
 
@@ -83,31 +78,95 @@ export default {
       this.$router.push({ name: "statuses" });
     },
 
+    async fetchStatuses() {
+      try {
+        this.valueSet = mapFhirResponse(await fetchResources(config.FHIR_URL, "ValueSet", { url: "http://molit.eu/fhir/ValueSet/vitu-workinglist" }, this.token))[0];
+        this.codeSystem = mapFhirResponse(await fetchResources(config.FHIR_URL, "CodeSystem", { url: "http://molit.eu/fhir/CodeSystem/vitu-workinglist" }, this.token))[0];
+        if (!this.valueSet) {
+          throw new Error("ValueSet 'vitu-worklist' not found on server.");
+        }
+        if (!this.codeSystem) {
+          throw new Error("CodeSystem 'vitu-worklist' not found on server.");
+        }
+        this.statuses = this.valueSet.compose.include[0].concept;
+      } catch (e) {
+        this.loading = false;
+        this.handleError(e);
+      }
+    },
+
     async save() {
-      if (this.isExistingStatus) {
-        try {
-          await updateStatus(this.status, this.token);
-          this.$router.push({ name: "statuses", query: { success: true } });
-        } catch (e) {
-          this.error = handleAxiosError(e, this);
+      if (!this.$refs.form.checkValidity()) {
+        this.$refs.form.reportValidity();
+        return;
+      }
+
+      try {
+        this.loading = true;
+        if (this.isExistingStatus) {
+          const statusValueSet = this.statuses.find(s => s.code === this.$route.params.id);
+          const statusCodeSystem = this.codeSystem.concept.find(s => s.code === this.$route.params.id);
+          statusCodeSystem.display = this.status.display;
+          if (this.statusActive) {
+            if (!statusValueSet) {
+              this.status.extension = cloneDeep(statusTemplate.extension);
+              this.status.extension[0].valueDecimal = this.statuses.length;
+              this.statuses.push(this.status);
+            } else {
+              statusValueSet.display = this.status.display;
+            }
+          } else {
+            if (statusValueSet) {
+              this.valueSet.compose.include[0].concept = this.statuses.filter(s => s.code !== statusValueSet.code);
+              this.valueSet.compose.include[0].concept.forEach((status, index) => (status.extension[0].valueDecimal = index));
+            }
+          }
+          await updateResource(config.FHIR_URL, this.codeSystem, this.token);
+          await updateResource(config.FHIR_URL, this.valueSet, this.token);
+        } else {
+          this.status.code = this.status.display.replace(/\s+/g, "-").toLocaleLowerCase();
+          const statusCodeSystem = cloneDeep(this.status);
+          delete statusCodeSystem.extension;
+          this.codeSystem.concept.push(statusCodeSystem);
+          await updateResource(config.FHIR_URL, this.codeSystem, this.token);
+          if (this.statusActive) {
+            this.status.extension[0].valueDecimal = this.statuses.length;
+            this.statuses.push(this.status);
+            await updateResource(config.FHIR_URL, this.valueSet, this.token);
+          }
+        }
+        this.$router.push({ name: "statuses", query: { success: true } });
+      } catch (e) {
+        this.loading = false;
+        if (e && e.response && e.response.status === 500) {
+          this.error = this.$t("admin.statusAlreadyExists");
+        } else {
+          this.handleError(e);
         }
       }
     }
   },
 
   async mounted() {
+    await this.fetchStatuses();
     if (this.isExistingStatus) {
       try {
-        this.status = (await getStatusById(this.$route.params.id, this.token)).data;
+        let status = this.statuses.find(s => s.code === this.$route.params.id);
+        if (!status) {
+          status = this.codeSystem.concept.find(s => s.code === this.$route.params.id);
+          this.statusActive = false;
+        } else {
+          this.statusActive = true;
+        }
+        if (!status) {
+          throw new Error("Status could not be found.");
+        }
+        this.status = cloneDeep(status);
       } catch (e) {
-        this.error = handleAxiosError(e, this);
+        this.handleError(e);
       }
     } else {
-      this.status = {
-        description: null,
-        icon: null,
-        orderNumber: null
-      };
+      this.status = cloneDeep(statusTemplate);
     }
   },
 
