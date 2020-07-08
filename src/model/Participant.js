@@ -1,5 +1,3 @@
-import hark from "hark";
-
 export class Participant {
   constructor(id, pvtid, stream, caption, local, loading, mirrored) {
     this.id = id;
@@ -16,13 +14,6 @@ export class Participant {
 
   setStream(stream) {
     this.stream = stream;
-    this.registerSpeakingListeners();
-  }
-
-  registerSpeakingListeners() {
-    let speechEvents = hark(this.stream);
-    speechEvents.on("speaking", () => (this.speaking = true));
-    speechEvents.on("stopped_speaking", () => (this.speaking = false));
   }
 }
 
@@ -40,17 +31,31 @@ export class LocalParticipant extends Participant {
     });
   }
 
-  publish(audio = true, video = true, screen = false) {
+  publish(audio = true, video = true, screen = false, audioDeviceId) {
     let media = {
+      replaceAudio: true,
       audioRecv: false,
       videoRecv: false,
       audioSend: audio,
       videoSend: video
     };
+
+    if (audioDeviceId) {
+      media = {
+        ...media,
+        audio: {
+          deviceId: {
+            exact: audioDeviceId
+          }
+        }
+      };
+    }
+
     if (screen) {
       media.video = "screen";
       media.audioSend = false;
     }
+
     this.pluginHandle.createOffer({
       media,
       pin: this.pin,
@@ -86,11 +91,15 @@ export class LocalParticipant extends Participant {
   }
 
   muteAudio() {
-    this.pluginHandle.muteAudio();
+    if (this.pluginHandle) {
+      this.pluginHandle.muteAudio();
+    }
   }
 
   unmuteAudio() {
-    this.pluginHandle.unmuteAudio();
+    if (this.pluginHandle) {
+      this.pluginHandle.unmuteAudio();
+    }
   }
 
   muteVideo() {

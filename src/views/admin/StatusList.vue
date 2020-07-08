@@ -107,8 +107,8 @@ export default {
   methods: {
     async fetchStatuses() {
       try {
-        this.valueSet = mapFhirResponse(await fetchResources(config.FHIR_URL, "ValueSet", { url: "http://molit.eu/fhir/ValueSet/vitu-workinglist" }, this.token))[0];
-        this.codeSystem = mapFhirResponse(await fetchResources(config.FHIR_URL, "CodeSystem", { url: "http://molit.eu/fhir/CodeSystem/vitu-workinglist" }, this.token))[0];
+        this.valueSet = mapFhirResponse(await fetchResources(config.FHIR_URL, "ValueSet", { url: "http://molit.eu/fhir/vitu/ValueSet/vitu-workinglist" }, this.token))[0];
+        this.codeSystem = mapFhirResponse(await fetchResources(config.FHIR_URL, "CodeSystem", { url: "http://molit.eu/fhir/vitu/CodeSystem/vitu-workinglist" }, this.token))[0];
         if (!this.valueSet) {
           throw new Error("ValueSet 'vitu-worklist' not found on server.");
         }

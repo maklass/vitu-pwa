@@ -168,7 +168,7 @@ export default {
 }
 
 .collapsed {
-  width: 60px !important;
+  width: $navbar-height !important;
 }
 
 .divider {

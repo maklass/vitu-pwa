@@ -9,6 +9,11 @@ $vs-state-active-color: #222;
   outline: none;
 }
 
+.btn:focus {
+  box-shadow: initial;
+  -webkit-box-shadow: initial;
+}
+
 .info-box {
   background: $vitu-blue;
   color: #eee;
@@ -31,6 +36,10 @@ $vs-state-active-color: #222;
 body {
   background: $vitu-background;
   color: $vitu-text;
+}
+
+html {
+  scroll-padding-top: calc(#{$navbar-height} + 0.8rem);
 }
 
 .ghost {
@@ -65,6 +74,10 @@ body {
   display: flex;
   padding-top: 1rem;
   margin-bottom: 1rem;
+}
+
+.no-border {
+  border: 0;
 }
 
 @media (min-width: 768px) {
@@ -120,6 +133,10 @@ body {
   border-color: map-get($theme-colors, "secondary");
 }
 
+.full-height {
+  height: 100%;
+}
+
 .btn-cancel,
 .btn-secondary {
   background: white;
@@ -127,10 +144,20 @@ body {
   &:hover {
     background: rgba(0, 0, 0, 0.075);
   }
+
+  &:active,
+  &:focus {
+    background: white !important;
+  }
 }
 
 .vs__dropdown-toggle {
   height: calc(1.5em + 0.75rem + 2px);
+}
+
+.multiple .vs__dropdown-toggle {
+  height: auto;
+  min-height: calc(1.5em + 0.75rem + 2px);
 }
 
 .dropdown-item.text-danger:active {
@@ -191,4 +218,8 @@ body {
     //   display: table-row-group !important;
     // }
   }
+}
+
+.tooltip {
+  top: 0;
 }

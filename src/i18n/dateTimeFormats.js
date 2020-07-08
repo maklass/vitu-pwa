@@ -13,6 +13,13 @@ const dateTimeFormats = {
       hour: "numeric",
       minute: "numeric",
       hour12: false
+    },
+
+    weekdayAndTime: {
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false,
+      weekday: "long"
     }
   },
   en: {
@@ -29,6 +36,13 @@ const dateTimeFormats = {
       hour: "numeric",
       minute: "numeric",
       hour12: true
+    },
+
+    weekdayAndTime: {
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+      weekday: "long"
     }
   }
 };

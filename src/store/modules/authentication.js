@@ -3,11 +3,18 @@ import config from "@/config/config";
 
 export const SET_KEYCLOAK = "SET_KEYCLOAK";
 export const INIT_KEYCLOAK = "INIT_KEYCLOAK";
+export const UPDATE_TOKEN = "UPDATE_TOKEN";
 
-const initOptions = {
+const keycloakOptions = {
   url: config.KEYCLOAK_URL,
   realm: config.KEYCLOAK_REALM,
   clientId: config.KEYCLOAK_CLIENT_ID
+};
+
+const initOptions = {
+  checkLoginIframe: false,
+  onLoad: "check-sso",
+  promiseType: "native"
 };
 
 const state = {
@@ -21,32 +28,27 @@ const mutations = {
 };
 
 const actions = {
-  [INIT_KEYCLOAK]({ commit }) {
-    let keycloak = Keycloak(initOptions);
+  [INIT_KEYCLOAK]({ commit, dispatch }) {
+    let keycloak = new Keycloak(keycloakOptions);
     return new Promise((resolve, reject) => {
       keycloak
-        .init({ onLoad: "check-sso" })
-        .success(authenticated => {
-          console.log(keycloak.token);
+        .init(initOptions)
+        .then(authenticated => {
           commit(SET_KEYCLOAK, { keycloak });
           resolve(authenticated);
         })
-        .error(error => {
+        .catch(error => {
           reject(error);
         });
+      keycloak.onTokenExpired = () => {
+        dispatch(UPDATE_TOKEN);
+      };
     });
   },
 
-  updateToken({ state }) {
-    return new Promise((resolve, reject) => {
-      state.keycloak
-        .updateToken(30)
-        .success(refreshed => {
-          resolve(refreshed);
-        })
-        .error(error => {
-          reject(error);
-        });
+  [UPDATE_TOKEN]({ state }) {
+    return state.keycloak.updateToken(5).then(refreshed => {
+      console.log("Token refreshed", refreshed);
     });
   }
 };

@@ -4,11 +4,17 @@
     <div class="container">
       <breadcrumps :breadcrumps="[{ name: $t('admin.adminArea'), route: { name: 'admin' } }, { name: $t('admin.userList') }]" />
       <div class="page-header">
-        <h5 class="headline">{{ $t("admin.userList") }}</h5>
+        <h5 class="headline">{{ $t("admin.userList") }} ({{ total }})</h5>
         <div class="spacer"></div>
+        <button type="button" @click="copyEmails" class="btn btn-secondary mr-2">{{ $t("copyEmails") }}</button>
+        <button type="button" @click="copyUsers" class="btn btn-secondary mr-2">{{ $t("copyUsers") }}</button>
         <router-link class="btn btn-primary" tag="button" :to="{ name: 'user-new' }">{{ $t("admin.addUser") }}</router-link>
       </div>
       <div class="page-body">
+        <h6>{{ $t("existingUsers") }}</h6>
+        <div class="form-group">
+          <input class="form-control" @input="onSearch" v-model="search" :placeholder="$t('search')" />
+        </div>
         <spinner v-if="!users && !error" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" />
         <div v-else>
           <list-item class="list-item" v-for="user in users" :key="user.id" :title="getTitleForUser(user)" :subtitle="user.username" :to="!user.fromFederation ? { name: 'user-edit', params: { id: user.id } } : null">
@@ -20,7 +26,7 @@
                 <template slot="button-content">
                   <dots-vertical-icon />
                 </template>
-                <b-dropdown-item :disabled="user.fromFederation" :to="{ name: 'user-edit', params: { id: user.id } }">{{ $t("admin.editUser") }}</b-dropdown-item>
+                <b-dropdown-item :to="{ name: 'user-edit', params: { id: user.id } }">{{ $t("admin.editUser") }}</b-dropdown-item>
                 <b-dropdown-item :disabled="user.fromFederation" @click="showDeleteUserModal(user)" variant="danger">{{ $t("admin.deleteUser") }}</b-dropdown-item>
               </b-dropdown>
             </template>
@@ -37,15 +43,16 @@
 
 <script>
 import Breadcrumps from "@/components/ui/Breadcrumps";
-import ListItem from "@/components/ui/ListItem";
 import NotificationPanels from "@/components/ui/NotificationPanels";
-import { getUsers, getUserCount, deleteUser } from "@/api/security-api";
+import Spinner from "vue-simple-spinner";
+import ListItem from "@/components/ui/ListItem";
+import { getUsers, deleteUser, getUserCount } from "@/api/security-api";
 import notifications from "@/mixins/notifications";
 
 import AccountCircleIcon from "vue-material-design-icons/AccountCircle";
 import DotsVerticalIcon from "vue-material-design-icons/DotsVertical";
-import Spinner from "vue-simple-spinner";
 import { mapState } from "vuex";
+import { debounce } from "lodash";
 
 export default {
   mixins: [notifications],
@@ -56,12 +63,17 @@ export default {
       selectedUser: null,
       currentPage: 1,
       max: 20,
-      total: 0
+      total: 0,
+      debounceTime: 300,
+      search: null,
+      emails: null,
+      names: null
     };
   },
 
   computed: {
     ...mapState({
+      loggedInUserId: state => state.authentication.keycloak.subject,
       token: state => state.authentication.keycloak.token,
       roles: state => state.authentication.keycloak.realmAccess.roles
     }),
@@ -92,18 +104,54 @@ export default {
   methods: {
     async getUsers() {
       try {
-        const totalResponse = await getUserCount(this.token);
-        this.total = totalResponse.data;
+        this.users = null;
+        const totalResponse = await getUsers(this.token, 0, 100000, this.search);
+        this.total = totalResponse.data.length;
+        this.emails = totalResponse.data.reduce((acc, current) => {
+          if (current.email) {
+            acc += current.email + "; ";
+          }
+          return acc;
+        }, "");
+        this.names = totalResponse.data.reduce((acc, current) => {
+          if (current.firstName || current.lastName) {
+            acc += this.getTitleForUser(current) + "\n";
+          }
+          return acc;
+        }, "");
 
-        const userResponse = await getUsers(this.token, this.first, this.max);
+        const userResponse = await getUsers(this.token, this.first, this.max, this.search);
         this.users = userResponse.data;
-        // .sort((e1, e2) => {
-        //   if (e1.firstName && typeof e1.firstName === "string" && e2.firstName && typeof e2.firstName === "string") {
-        //     return e1.firstName.localeCompare(e2.firstName);
-        //   }
-        // });
       } catch (e) {
         this.handleError(e);
+      }
+    },
+
+    async copyEmails() {
+      try {
+        await this.$copyText(this.emails);
+        this.$bvToast.toast(this.$tc("emailsSuccessfullyCopied"), {
+          title: this.$tc("message"),
+          autoHideDelay: 5000,
+          appendToast: false,
+          toaster: "b-toaster-bottom-right"
+        });
+      } catch (e) {
+        alert("Emails could not be copied.");
+      }
+    },
+
+    async copyUsers() {
+      try {
+        await this.$copyText(this.names);
+        this.$bvToast.toast(this.$tc("usersCopiedSuccessfully"), {
+          title: this.$tc("message"),
+          autoHideDelay: 5000,
+          appendToast: false,
+          toaster: "b-toaster-bottom-right"
+        });
+      } catch (e) {
+        alert("Users could not be copied.");
       }
     },
 
@@ -121,9 +169,18 @@ export default {
       this.$bvModal.show("delete-user-modal");
     },
 
+    onSearch() {
+      this.debouncedSearch();
+    },
+
     async deleteUser(id) {
       if (!id) {
-        console.error("No ID present.");
+        this.handleError("No ID present.");
+      }
+
+      if (id === this.loggedInUserId) {
+        this.handleError(this.$t("cannotDeleteYourself"));
+        return;
       }
 
       try {
@@ -141,6 +198,10 @@ export default {
     if (this.$route.query.success) {
       this.success = this.$t(this.$route.query.success);
     }
+    this.debouncedSearch = debounce(this.getUsers, this.debounceTime);
+    getUserCount(this.token).then(response => {
+      console.log(response);
+    });
     this.getUsers();
   },
 
@@ -153,9 +214,9 @@ export default {
 
   components: {
     AccountCircleIcon,
-    Breadcrumps,
     DotsVerticalIcon,
     ListItem,
+    Breadcrumps,
     NotificationPanels,
     Spinner
   }

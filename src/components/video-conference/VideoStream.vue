@@ -1,5 +1,5 @@
 <template>
-  <video :class="{ mirrored }" @playing="onPlaying" @pause="onPause" autoplay ref="video" @click="onClick()" :muted="muted"></video>
+  <video :class="{ mirrored }" @playing="onPlaying" @pause="onPause" autoplay playsinline ref="video" @click="onClick()" :muted="muted"></video>
 </template>
 
 <script>
@@ -42,7 +42,7 @@ export default {
      * Sets the srcObject of the video element to the janus stream.
      */
     updateVideoStream() {
-      if (this.$refs.video && this.$refs.video.srcObject !== this.stream && this.stream !== undefined) {
+      if (this.$refs.video && this.stream !== undefined) {
         this.$refs.video.srcObject = this.stream;
       }
     }

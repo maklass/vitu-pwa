@@ -4,11 +4,13 @@ import NotFound from "./views/404";
 import Home from "./views/Home.vue";
 import About from "./views/About.vue";
 import Login from "./views/Login.vue";
-import WorkListOld from "@/views/WorkList";
 import Worklist from "@/views/worklist/Worklist";
+import ClinicalCase from "@/views/worklist/ClinicalCase";
 import ClinicalCaseList from "@/views/worklist/ClinicalCaseList";
 import ClinicalCaseEdit from "@/views/worklist/ClinicalCaseEdit";
+import Patient from "@/views/worklist/Patient";
 import PatientEdit from "@/views/worklist/PatientEdit";
+import PatientList from "@/views/worklist/PatientList";
 import Planner from "@/views/Planner";
 import Conference from "@/views/Conference";
 import ConferenceOverview from "@/views/ConferenceOverview";
@@ -16,11 +18,16 @@ import Documentation from "@/views/Documentation";
 import DocumentationOverview from "@/views/DocumentationOverview";
 import DocumentationView from "@/views/DocumentationView";
 import Admin from "@/views/admin/Admin";
+import AuditEvents from "@/views/admin/AuditEvents";
 import StatusEdit from "@/views/admin/StatusEdit";
 import StatusList from "@/views/admin/StatusList";
 import UserEdit from "@/views/admin/UserEdit";
 import ConferenceSettings from "@/views/admin/ConferenceSettings";
 import UserList from "@/views/admin/UserList";
+import Organization from "@/views/admin/Organization";
+import Organizations from "@/views/admin/Organizations";
+import ConferenceModerator from "@/views/ConferenceModerator.vue";
+import TempUpload from "@/views/worklist/TempUpload";
 
 import config from "./config/config";
 import roles from "./model/roles";
@@ -40,46 +47,70 @@ export default new Router({
       path: "/",
       name: "home",
       component: Home,
-      meta: { requiresAuth: true, roles: [roles.USER, roles.MODERATOR, roles.ADMINISTRATOR] }
-    },
-    {
-      path: "/worklist-old",
-      name: "worklist-old",
-      component: WorkListOld,
-      meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+      meta: { requiresAuth: true, roles: [roles.USER, roles.MODERATOR, roles.ADMINISTRATOR, roles.FREIGEBER, roles.CASE_MANAGER] }
     },
     {
       path: "/worklist",
       name: "worklist",
       component: Worklist,
-      meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] },
+      meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.CASE_MANAGER, roles.ADMINISTRATOR] },
       redirect: {
-        name: "clinical-case-list"
+        name: "clinical-cases"
       },
       children: [
         {
-          path: "/worklist/clinical-case-list",
-          name: "clinical-case-list",
+          path: "/worklist/clinical-cases",
+          name: "clinical-cases",
           component: ClinicalCaseList,
-          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.CASE_MANAGER] }
         },
         {
-          path: "/worklist/clinical-case/:id?",
+          path: "/worklist/clinical-cases/:id?",
           name: "clinical-case",
-          component: ClinicalCaseEdit,
-          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+          component: ClinicalCase,
+          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.CASE_MANAGER] }
         },
         {
-          path: "/worklist/clinical-case/new",
+          path: "/worklist/clinical-cases/edit/new",
           name: "clinical-case-new",
           component: ClinicalCaseEdit,
-          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.CASE_MANAGER] }
         },
         {
-          path: "/worklist/patient/new",
+          path: "/worklist/clinical-cases/edit/:id?",
+          name: "clinical-case-edit",
+          component: ClinicalCaseEdit,
+          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.CASE_MANAGER] }
+        },
+        {
+          path: "/worklist/patients/new",
           name: "patient-new",
           component: PatientEdit,
-          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.CASE_MANAGER] }
+        },
+        {
+          path: "/worklist/patients/:id",
+          name: "patient",
+          component: Patient,
+          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.CASE_MANAGER] }
+        },
+        {
+          path: "/worklist/patients",
+          name: "patients",
+          component: PatientList,
+          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.CASE_MANAGER] }
+        },
+        {
+          path: "/worklist/patients/edit/:id?",
+          name: "patient-edit",
+          component: PatientEdit,
+          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.CASE_MANAGER] }
+        },
+        {
+          path: "/worklist/upload",
+          name: "temp-upload",
+          component: TempUpload,
+          meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.CASE_MANAGER] }
         }
       ]
     },
@@ -87,37 +118,43 @@ export default new Router({
       path: "/planner",
       name: "planner",
       component: Planner,
-      meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+      meta: { requiresAuth: true, roles: [roles.MODERATOR] }
+    },
+    {
+      path: "/conference/:room/moderator",
+      name: "conference-moderator",
+      component: ConferenceModerator,
+      meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.USER] }
     },
     {
       path: "/conference/",
       name: "conference-overview",
       component: ConferenceOverview,
-      meta: { requiresAuth: true, roles: [roles.USER, roles.MODERATOR, roles.ADMINISTRATOR] }
+      meta: { requiresAuth: true, roles: [roles.USER, roles.MODERATOR] }
     },
     {
       path: "/conference/:room",
       name: "conference",
       component: Conference,
-      meta: { requiresAuth: true, roles: [roles.USER, roles.MODERATOR, roles.ADMINISTRATOR] }
+      meta: { requiresAuth: true, roles: [roles.USER, roles.MODERATOR] }
     },
     {
       path: "/documentation",
       name: "documentation-overview",
       component: DocumentationOverview,
-      meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+      meta: { requiresAuth: true, roles: [roles.MODERATOR] }
     },
     {
       path: "/documentation/new",
       name: "documentation-new",
       component: Documentation,
-      meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+      meta: { requiresAuth: true, roles: [roles.MODERATOR] }
     },
     {
       path: "/documentation/:id",
       name: "documentation",
       component: DocumentationView,
-      meta: { requiresAuth: true, roles: [roles.MODERATOR, roles.ADMINISTRATOR] }
+      meta: { requiresAuth: true, roles: [roles.MODERATOR] }
     },
     {
       path: "/admin",
@@ -128,6 +165,12 @@ export default new Router({
         name: "users"
       },
       children: [
+        {
+          path: "/admin/auditevents",
+          name: "auditevents",
+          component: AuditEvents,
+          meta: { requiresAuth: true, roles: [roles.ADMINISTRATOR] }
+        },
         {
           path: "/admin/statuses",
           name: "statuses",
@@ -141,7 +184,7 @@ export default new Router({
           meta: { requiresAuth: true, roles: [roles.ADMINISTRATOR] }
         },
         {
-          path: "/admin/statuses/new",
+          path: "/admin/statuses/new-status",
           name: "status-new",
           component: StatusEdit,
           meta: { requiresAuth: true, roles: [roles.ADMINISTRATOR] }
@@ -150,6 +193,18 @@ export default new Router({
           path: "/admin/conference",
           name: "conference-settings",
           component: ConferenceSettings,
+          meta: { requiresAuth: true, roles: [roles.ADMINISTRATOR] }
+        },
+        {
+          path: "/admin/organizations",
+          name: "organizations",
+          component: Organizations,
+          meta: { requiresAuth: true, roles: [roles.ADMINISTRATOR] }
+        },
+        {
+          path: "/admin/organizations/:id",
+          name: "organization",
+          component: Organization,
           meta: { requiresAuth: true, roles: [roles.ADMINISTRATOR] }
         },
         {
@@ -176,7 +231,7 @@ export default new Router({
       path: "/about",
       name: "about",
       component: About,
-      meta: { requiresAuth: true, roles: [roles.ADMINISTRATOR, roles.MODERATOR, roles.USER] }
+      meta: { requiresAuth: true, roles: [roles.ADMINISTRATOR] }
     },
     {
       path: "/404",

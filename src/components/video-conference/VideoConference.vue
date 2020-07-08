@@ -12,27 +12,87 @@
           {{ roomName }}<span v-if="roomDate && showRoomDate"> - {{ $d(new Date(roomDate), "long") }}</span>
         </h4>
         <div class="video-conference-container">
-          <div :class="[{ 'video-conference': !fullScreenParticipant }]" :style="[{ width: fullScreenParticipant ? '200px' : '', flex: !fullScreenParticipant ? 1 : '' }]" v-if="!localScreenShared">
-            <video-conference-item v-if="localParticipant && !localScreenShared" :mirrored="true" :muted="true" :participant="localParticipant" :ratioX="ratioX" :ratioY="ratioY" :cutVideoStreams="cutVideoStreams" />
-            <video-conference-item v-for="remoteParticipant in filteredRemoteParticipants" :key="remoteParticipant.id" :participant="remoteParticipant" :ratioX="ratioX" :ratioY="ratioY" :cutVideoStreams="cutVideoStreams" />
+          <div
+            :class="[{ 'video-conference': !fullScreenParticipant }]"
+            :style="[
+              {
+                display: fullScreenParticipant ? '' : 'grid',
+                'max-width': fullScreenParticipant ? '160px' : '',
+                flex: !fullScreenParticipant ? 1 : '',
+                'grid-template-columns': !fullScreenParticipant ? 'repeat(auto-fit, minmax(' + getMinSizeForVideoElement() + ', 0.5fr))' : ''
+              }
+            ]"
+          >
+            <video-conference-item
+              v-if="localParticipant"
+              :mirrored="true"
+              :muted="true"
+              :participant="localParticipant"
+              :ratioX="ratioX"
+              :ratioY="ratioY"
+              :cutVideoStreams="cutVideoStreams"
+              :audio="audio"
+              :video="video"
+              @toggleVideo="toggleVideo"
+              @toggleAudio="toggleAudio"
+              :style="[{ display: video ? '' : 'none' }]"
+            />
+            <video-conference-item
+              v-for="remoteParticipant in filteredRemoteParticipants"
+              :key="remoteParticipant.id"
+              :participant="remoteParticipant"
+              :ratioX="ratioX"
+              :ratioY="ratioY"
+              :cutVideoStreams="cutVideoStreams"
+              :bitrate="bitrate"
+              :style="[{ display: shouldDisplayParticipant(remoteParticipant) ? '' : 'none' }]"
+            />
           </div>
-          <div class="fullscreen-element" v-if="fullScreenParticipant">
-            <video-conference-item :mirrored="false" :muted="true" :fullScreen="true" :participant="fullScreenParticipant" />
+          <div class="fullscreen-element" v-if="fullScreenParticipant" :style="[{ 'margin-left': showMarginOnFullScreenParticipant ? '' : '0' }]">
+            <video-conference-item :mirrored="false" :muted="true" :fullScreen="true" :participant="p" v-for="p in fullScreenParticipants" :key="p.id" />
           </div>
         </div>
       </div>
-      <control-panel class="control-panel" @shareScreen="shareScreen" @unshareScreen="unshareScreen" @leave="goToHome" :showEntries="showEntries" :entries="entries" v-if="room" :room="room" :consentDialogScreen="consentDialogScreen" />
+      <control-panel
+        class="control-panel"
+        @shareScreen="shareScreen"
+        @unshareScreen="unshareScreen"
+        @leave="goToHome"
+        @toggleAudio="toggleAudio"
+        @toggleVideo="toggleVideo"
+        @audioDeviceChanged="onAudioDeviceChanged"
+        :showEntries="showEntries"
+        :entries="entries"
+        v-if="room"
+        :room="room"
+        :consentDialogScreen="consentDialogScreen"
+        :audio="audio"
+        :video="video"
+        :speaking="speaking"
+        :devices="devices"
+        :screenShared="screenShared"
+        :fullScreenParticipant="fullScreenParticipant"
+        :currentRoundTripTime="currentRoundTripTime"
+        :numberOfVideos="numberOfVideos"
+        :maxNumberOfVideos="maxNumberOfVideos"
+      />
     </div>
   </div>
 </template>
 
 <script>
 import Janus from "../../assets/js/janus.js";
+import hark from "hark";
 import ControlPanel from "../ControlPanel";
 import VideoConferenceItem from "./VideoConferenceItem";
 import config from "./../../config/config";
 import { Participant, LocalParticipant } from "./../../model/Participant";
 import { mapState } from "vuex";
+
+import joinSound from "@/assets/sounds/join.mp3";
+
+const RECONNECT_TIMEOUT = 8000;
+const RETRY_TIMEOUT = 2000;
 
 export default {
   props: {
@@ -66,14 +126,34 @@ export default {
       default: 10
     },
 
+    showVideoInitially: {
+      type: Boolean,
+      default: true
+    },
+
     bitrate: {
       type: Number,
-      default: 500
+      default: 300
     },
 
     cutVideoStreams: {
       type: Boolean,
       default: true
+    },
+
+    turnUrl: {
+      type: String,
+      required: true
+    },
+
+    turnUser: {
+      type: String,
+      required: true
+    },
+
+    turnSecret: {
+      type: String,
+      required: true
     },
 
     room: {
@@ -91,6 +171,11 @@ export default {
 
     showRoomDate: {
       type: Boolean
+    },
+
+    maxNumberOfVideos: {
+      type: Number,
+      default: 8
     }
   },
 
@@ -106,7 +191,18 @@ export default {
       bitrateTimer: [],
       localParticipant: null,
       remoteParticipants: [],
-      screenHandle: null
+      screenHandle: null,
+      audio: true,
+      video: this.showVideoInitially,
+      switching: false,
+      speechEvents: null,
+      speaking: false,
+      devices: [],
+      statsInterval: null,
+      statsIntervalTimeout: 2000,
+      currentRoundTripTime: 0,
+      screenShared: false,
+      audioDisconnectedTimeout: null
     };
   },
 
@@ -134,76 +230,106 @@ export default {
       return this.roles.includes("vitu-moderator");
     },
 
-    secrets() {
-      return this.roles.find(role => role.startsWith("turn"));
-    },
-
-    turnUrl() {
-      if (this.secrets) {
-        return this.secrets.split(":")[1];
-      }
-    },
-
-    turnUser() {
-      if (this.secrets) {
-        return this.secrets.split(":")[2];
-      }
-    },
-
-    turnSecret() {
-      if (this.secrets) {
-        return this.secrets.split(":")[3];
-      }
-    },
-
-    localScreenShared() {
-      if (this.$route.query.screen === "true") {
-        return true;
-      } else {
-        return false;
-      }
-    },
-
     fullScreenParticipant() {
-      if (this.localScreenShared) {
-        return this.localParticipant;
-      } else {
-        const participant = this.remoteParticipants.find(participant => {
-          return participant.caption.startsWith("Screen");
-        });
-        return participant;
+      if (!this.remoteParticipants) {
+        return null;
       }
+      return this.remoteParticipants.find(participant => {
+        return participant.caption.startsWith("Screen");
+      });
+    },
+
+    fullScreenParticipants() {
+      if (!this.remoteParticipants) {
+        return [];
+      }
+      return this.remoteParticipants.filter(participant => {
+        return participant.caption.startsWith("Screen");
+      });
+    },
+
+    showMarginOnFullScreenParticipant() {
+      return this.video || this.filteredRemoteParticipants.find(participant => participant.stream && participant.stream.getVideoTracks() && participant.stream.getVideoTracks().length > 0);
     },
 
     filteredRemoteParticipants() {
       return this.remoteParticipants.filter(participant => {
         return !participant.caption.startsWith("Screen");
       });
+    },
+
+    numberOfVideos() {
+      let numberOfVideos = 0;
+      if (this.video) {
+        numberOfVideos++;
+      }
+      numberOfVideos = this.filteredRemoteParticipants.reduce((acc, p) => {
+        if (this.shouldDisplayParticipant(p)) {
+          acc++;
+        }
+        return acc;
+      }, numberOfVideos);
+      return numberOfVideos;
     }
   },
 
   methods: {
+    toggleAudio() {
+      this.audio = !this.audio;
+    },
+
+    toggleVideo() {
+      if (this.numberOfVideos >= this.maxNumberOfVideos && !this.video) {
+        return;
+      }
+      this.video = !this.video;
+    },
+
+    shouldDisplayParticipant(participant) {
+      return participant.stream && participant.stream.getVideoTracks() && participant.stream.getVideoTracks().length > 0;
+    },
+
+    registerSpeakingListeners(stream) {
+      this.speechEvents = hark(stream);
+      this.speechEvents.on("speaking", this.onSpeaking);
+      this.speechEvents.on("stopped_speaking", this.onStopSpeakeing);
+    },
+
+    onSpeaking() {
+      this.speaking = true;
+    },
+
+    onStopSpeakeing() {
+      this.speaking = false;
+    },
+
+    onAudioDeviceChanged(deviceId) {
+      this.localParticipant.publish(true, this.video, false, deviceId);
+    },
+
     onJanusInitialized() {
       if (!Janus.isWebrtcSupported()) {
         alert("No WebRTC support... ");
         return;
       }
 
-      if (!this.secrets) {
-        alert("User role not defined, please contact administrator");
+      if (!this.turnUrl) {
+        alert("Turn Server not defined, please contact administrator.");
         return;
       }
+
+      const iceServers = [
+        {
+          urls: `turn:${this.turnUrl}:443?transport=tcp`,
+          username: this.turnUser,
+          credential: this.turnSecret
+        }
+      ];
 
       this.janus = new Janus({
         server: this.server,
         iceTransportPolicy: "relay",
-        iceServers: [
-          {
-            urls: `turn:${this.turnUrl}:443?transport=tcp`,
-            username: this.turnUser,
-            credential: this.turnSecret
-          }
-        ],
+        iceServers,
         success: this.onJanusCreateSuccess,
         error: this.onJanusCreateError,
         destroyed: this.onJanusDestroyed
@@ -226,7 +352,8 @@ export default {
     },
 
     onJanusCreateError(error) {
-      Janus.error(error);
+      Janus.error(error + "MOUNT EVEREST");
+      this.reconnect();
     },
 
     onJanusDestroyed() {
@@ -250,6 +377,21 @@ export default {
 
     onJanusPluginAttachMediaState(medium, on) {
       Janus.log("Janus " + (on ? "started" : "stopped") + " receiving our " + medium);
+      if (on) {
+        clearTimeout(this.audioDisconnectedTimeout);
+        if (this.audio) {
+          if (this.localParticipant) {
+            this.localParticipant.unmuteAudio();
+          }
+        } else {
+          if (this.localParticipant) {
+            this.localParticipant.muteAudio();
+          }
+        }
+      } else if (!on && medium === "audio") {
+        this.currentRoundTripTime = 0;
+        this.audioDisconnectedTimeout = setTimeout(this.reconnect, RECONNECT_TIMEOUT);
+      }
     },
 
     onJanusPluginAttachWebrtcState(on) {
@@ -300,6 +442,7 @@ export default {
       Janus.debug(" ::: Got a local stream :::");
       this.localParticipant.setStream(stream);
       this.localParticipant.setBitrate(this.bitrate * 1024);
+      this.registerSpeakingListeners(stream);
       Janus.debug(stream);
     },
 
@@ -308,13 +451,17 @@ export default {
       if (this.localParticipant) {
         this.localParticipant.stream = null;
       }
+      if (this.switching) {
+        this.switching = false;
+        this.localParticipant.publish(true, this.video, false, this.deviceId);
+      }
     },
 
     onJanusVideoRoomJoined(msg) {
       this.localParticipant.id = msg.id;
       this.localParticipant.pvtid = msg.private_id;
       Janus.log("Successfully joined room " + msg["room"] + " with ID " + this.localParticipant.id);
-      this.localParticipant.publish(true, true, this.localScreenShared);
+      this.localParticipant.publish(true, this.video, false);
       this.checkRemoteStreams(msg);
     },
 
@@ -327,8 +474,31 @@ export default {
         this.checkRemoteStreams(msg);
       } else if (msg.leaving) {
         let remoteParticipant = this.getRemoteParticipantById(msg.leaving);
-        remoteParticipant.pluginHandle.detach();
-        this.removeRemoteParticipantById(msg.leaving);
+        if (remoteParticipant) {
+          if (remoteParticipant.pluginHandle) {
+            remoteParticipant.pluginHandle.detach();
+          }
+          this.removeRemoteParticipantById(msg.leaving);
+        }
+      } else if (msg.unpublished) {
+        const unpublished = msg["unpublished"];
+        Janus.log("Publisher left: " + unpublished);
+        if (unpublished === "ok") {
+          // That's us
+          if (this.localParticipant && this.localParticipant.pluginHandle) {
+            // this.localParticipant.pluginHandle.hangup();
+          }
+          return;
+        }
+        let remoteParticipant = this.getRemoteParticipantById(unpublished);
+        if (remoteParticipant) {
+          if (remoteParticipant.pluginHandle) {
+            remoteParticipant.pluginHandle.detach();
+          }
+          this.removeRemoteParticipantById(unpublished);
+        }
+      } else if (msg.error) {
+        console.error(msg.error);
       }
     },
 
@@ -361,6 +531,11 @@ export default {
         private_id: this.localParticipant.pvtid
       };
       pluginHandle.send({ message: listen });
+    },
+
+    playJoinSound() {
+      const audio = new Audio(joinSound);
+      audio.play();
     },
 
     onJanusRemotePluginAttachedError(error) {
@@ -409,7 +584,14 @@ export default {
 
     onJanusRemotePluginAttachedRemoteStream(stream, pluginHandle) {
       let remoteParticipant = this.getRemoteParticipantById(pluginHandle.id);
-      remoteParticipant.setStream(stream);
+      if (remoteParticipant && this.fullScreenParticipant && this.fullScreenParticipant.id === remoteParticipant.id && stream.getTracks() && stream.getTracks().length < 2) {
+        console.log(stream.getTracks());
+        console.log(pluginHandle);
+        console.log(remoteParticipant);
+      }
+      if (remoteParticipant) {
+        remoteParticipant.setStream(stream);
+      }
     },
 
     onJanusRemotePluginAttachedCleanup(id) {
@@ -418,8 +600,8 @@ export default {
     },
 
     getRemoteParticipantById(id) {
-      return this.remoteParticipants.find(localParticipant => {
-        return localParticipant.id === id;
+      return this.remoteParticipants.find(remoteParticipant => {
+        return remoteParticipant.id === id;
       });
     },
 
@@ -442,7 +624,7 @@ export default {
               ptype: "publisher",
               display: `Screen: ${this.caption}`,
               pin: this.turnSecret,
-              token: this.roomToken
+              token: this.roomToken ? this.roomToken : ""
             }
           });
         },
@@ -456,7 +638,7 @@ export default {
             let media = {
               audioRecv: false,
               videoRecv: false,
-              audioSend: true,
+              audioSend: false,
               videoSend: true,
               video: "screen"
             };
@@ -487,15 +669,26 @@ export default {
 
             this.screenHandle.handleRemoteJsep({ jsep: jsep });
           }
+        },
+        onlocalstream: stream => {
+          this.screenShared = true;
+          if (stream && stream.getVideoTracks() && stream.getVideoTracks()[0]) {
+            stream.getVideoTracks()[0].onended = () => {
+              this.unshareScreen();
+            };
+          }
         }
       });
     },
 
     unshareScreen() {
-      let unpublish = { request: "unpublish" };
-      this.screenHandle.send({ message: unpublish });
-      this.screenHandle.detach();
+      if (this.screenHandle) {
+        let unpublish = { request: "unpublish" };
+        this.screenHandle.send({ message: unpublish });
+        this.screenHandle.detach();
+      }
       this.screenHandle = null;
+      this.screenShared = false;
     },
 
     checkRemoteStreams(msg) {
@@ -532,7 +725,25 @@ export default {
       return true;
     },
 
+    join() {
+      window.addEventListener("beforeunload", this.leave);
+
+      this.localParticipant = new LocalParticipant();
+      this.localParticipant.mirrored = true;
+      this.localParticipant.loading = true;
+      this.localParticipant.caption = this.caption;
+      this.localParticipant.local = true;
+
+      Janus.init({ debug: "all", callback: this.onJanusInitialized });
+      Janus.listDevices(devices => (this.devices = devices), { audio: true, video: false });
+
+      this.startStatsInterval();
+    },
+
     leave() {
+      if (this.statsInterval) {
+        clearInterval(this.statsInterval);
+      }
       if (this.localParticipant && this.localParticipant.pluginHandle) {
         this.localParticipant.pluginHandle.detach();
       }
@@ -543,27 +754,97 @@ export default {
         this.janus.destroy();
       }
       this.localParticipant = null;
+      this.screenHandle = null;
       this.remoteParticipants = [];
+    },
+
+    reconnect() {
+      this.leave();
+      setTimeout(this.join, RETRY_TIMEOUT);
     },
 
     goToHome() {
       this.$router.push({ name: "home" });
+    },
+
+    getMinSizeForVideoElement() {
+      switch (this.numberOfVideos) {
+        case 0:
+        case 1:
+        case 2:
+          return "34%";
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+          return "26%";
+        case 7:
+        case 8:
+          return "21%";
+        case 9:
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+        case 14:
+        case 15:
+          return "17%";
+        default:
+          return "15%";
+      }
+    },
+
+    startStatsInterval() {
+      this.statsInterval = setInterval(() => {
+        if (
+          !this.localParticipant ||
+          !this.localParticipant.pluginHandle ||
+          !this.localParticipant.pluginHandle.webrtcStuff ||
+          !this.localParticipant.pluginHandle.webrtcStuff.pc ||
+          !this.localParticipant.pluginHandle.webrtcStuff.pc.getStats
+        ) {
+          return;
+        }
+        this.localParticipant.pluginHandle.webrtcStuff.pc.getStats().then(stats => {
+          stats.forEach(report => {
+            Object.keys(report).forEach(statName => {
+              if (statName === "roundTripTime") {
+                this.currentRoundTripTime = report[statName];
+              }
+            });
+          });
+        });
+      }, this.statsIntervalTimeout);
     }
   },
 
-  async mounted() {
-    window.addEventListener("beforeunload", this.leave);
-
-    this.localParticipant = new LocalParticipant();
-    this.localParticipant.mirrored = true;
-    this.localParticipant.loading = true;
-    this.localParticipant.caption = this.localScreenShared ? `Screen: ${this.caption}` : this.caption;
-    this.localParticipant.local = true;
-
-    Janus.init({ debug: "all", callback: this.onJanusInitialized });
+  watch: {
+    audio: {
+      handler() {
+        if (this.audio) {
+          if (this.localParticipant) {
+            this.localParticipant.unmuteAudio();
+          }
+        } else {
+          if (this.localParticipant) {
+            this.localParticipant.muteAudio();
+          }
+        }
+      }
+    },
+    video: {
+      handler() {
+        this.switching = true;
+        this.localParticipant.unpublish();
+      }
+    }
   },
 
-  beforeDestroy: function() {
+  mounted() {
+    this.join();
+  },
+
+  beforeDestroy() {
     this.leave();
   },
 
@@ -580,7 +861,7 @@ export default {
 @include media-breakpoint-down(sm) {
   .video-conference {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(8em, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(6em, 1fr));
     grid-gap: 0.25rem;
   }
 }
@@ -588,7 +869,7 @@ export default {
 @include media-breakpoint-up(sm) {
   .video-conference {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(18em, 0.4fr));
+    grid-template-columns: repeat(auto-fit, minmax(25%, 0.5fr));
     grid-gap: 0.25rem;
   }
 }
@@ -621,7 +902,10 @@ export default {
 .control-panel {
   width: 300px;
   padding-left: 15px;
-  height: calc(100vh - 15px - 15px - 74px);
+  height: calc(100vh - #{$navbar-height});
+  margin-right: -15px;
+  margin-bottom: -15px;
+  margin-top: -15px;
 }
 
 .consent-dialog {

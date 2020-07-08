@@ -77,7 +77,7 @@
             </fieldset>
             <fieldset>
               <div class="legend-button-panel">
-                <legend>{{ $t("worklist.patient") }}</legend>
+                <legend>{{ $tc("worklist.patient", 1) }}</legend>
                 <button type="button" class="btn btn-secondary" @click="onPatientSelectButtonClicked">{{ $t("documentation.selectPatient") }}</button>
               </div>
               <resource-selector
@@ -124,7 +124,7 @@
                 </div>
               </div>
             </fieldset>
-            <fieldset v-if="patient">
+            <fieldset v-if="false">
               <div>
                 <legend>{{ $t("documentation.anamnesis") }}</legend>
               </div>
@@ -141,7 +141,7 @@
                 </div>
               </div>
             </fieldset>
-            <fieldset v-if="patient">
+            <fieldset v-if="false">
               <div class="legend-button-panel">
                 <legend>{{ $t("documentation.detectedMutations") }}</legend>
                 <button v-if="!loadingDiagnosticReport" type="button" class="btn btn-secondary" @click="onReportSelectButtonClicked">{{ $t("documentation.selectReport") }}</button>
@@ -213,7 +213,7 @@
                 </div>
               </div>
             </fieldset>
-            <fieldset v-if="patient">
+            <fieldset v-if="false">
               <div class="legend-button-panel">
                 <legend>{{ $t("documentation.therapyRecommendation") }}</legend>
                 <button type="button" class="btn btn-secondary" @click="onAddTherapyRecommendationButtonClicked">{{ $t("documentation.addTherapyRecommendation") }}</button>
@@ -249,6 +249,95 @@
                     </div>
                   </div>
                 </div>
+              </div>
+            </fieldset>
+            <fieldset>
+              <div class="legend-button-panel">
+                <legend>{{ $t("documentation.therapyRecommendation") }}</legend>
+              </div>
+              <table class="table table-bordered" style="table-layout: fixed;">
+                <colgroup>
+                  <col style="width: 40px" />
+                  <col style="width: 240px" />
+                  <col style="width: 30%" />
+                  <col style="width: 70%" />
+                  <col style="width: 50px" />
+                </colgroup>
+                <thead>
+                  <tr class="row-header">
+                    <th>#</th>
+                    <th>{{ $t("treatmentContext") }}</th>
+                    <th>{{ $t("recommendationCategory") }}</th>
+                    <th>{{ $t("documentation.therapyRecommendation") }}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="!recommendations || !recommendations.length">
+                    <td colspan="4" class="text-center">{{ $t("noEntriesFound") }}</td>
+                  </tr>
+                </tbody>
+                <tbody v-for="(recommendation, index) in recommendations" :key="index">
+                  <tr>
+                    <td>{{ index + 1 }}</td>
+                    <td><v-select :options="instantOfTimeList" :placeholder="$t('pleaseSelect')" /></td>
+                    <td><v-select :options="recommendationCategories" :placeholder="$t('pleaseSelect')" /></td>
+                    <td>
+                      <concept-select
+                        class="multiple"
+                        :fhirBaseUrl="fhirBaseUrl"
+                        resourceName="ValueSet"
+                        url="http://molit.eu/fhir/ValueSet/wirkstoffe-zpm"
+                        sort
+                        multiple
+                        :searchInputPlaceholder="$t('search')"
+                        :token="token"
+                        @error="handleError"
+                        v-model="recommendation.medication"
+                        mapToConceptMap
+                        conceptMapUrl="http://molit.eu/fhir/ConceptMap/protocols-to-atc"
+                        :sortFunction="medicationSortFunction"
+                      ></concept-select>
+                    </td>
+                    <td>
+                      <button type="button" class="btn btn-link delete-icon" @click="onRemoveRecommendation(index)"><delete-icon /></button>
+                    </td>
+                  </tr>
+                  <tr class="sub-heading">
+                    <th></th>
+                    <th>{{ $t("worklist.reason") }}</th>
+                    <th>{{ $t("evidenceLevel") }}</th>
+                    <th>Wirkstoff</th>
+                    <th></th>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td><v-select :options="variants" multiple class="multiple" /></td>
+                    <td><v-select :options="evidenceLevelList" :placeholder="$t('pleaseSelect')" /></td>
+                    <td>
+                      <concept-select
+                        class="multiple"
+                        :fhirBaseUrl="fhirBaseUrl"
+                        resourceName="ValueSet"
+                        url="http://molit.eu/fhir/ValueSet/wirkstoffe-zpm"
+                        sort
+                        multiple
+                        :searchInputPlaceholder="$t('search')"
+                        :token="token"
+                        @error="handleError"
+                        mapToConceptMap
+                        conceptMapUrl="http://molit.eu/fhir/ConceptMap/protocols-to-atc"
+                        :sortFunction="medicationSortFunction"
+                      ></concept-select>
+                    </td>
+                    <td>
+                      <button type="button" class="btn btn-link delete-icon" @click="onRemoveRecommendation(index)"><delete-icon /></button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="text-right">
+                <button type="button" @click="onAddRecommendation" class="btn btn-secondary">{{ $t("documentation.addTherapyRecommendation") }}</button>
               </div>
             </fieldset>
           </div>
@@ -354,12 +443,12 @@ import config from "@/config/config";
 import _ from "lodash";
 import AccountCircleIcon from "vue-material-design-icons/AccountCircle";
 import DeleteIcon from "vue-material-design-icons/Delete";
-import PlusIcon from "vue-material-design-icons/Plus";
 import Spinner from "vue-simple-spinner";
 import { fetchByUrl, fetchResources, mapFhirData, updateResource, submitResource } from "@molit/fhir-api";
 import { getStringFromHumanName, getValueByLoincCode } from "@molit/fhir-util";
 import { mapState } from "vuex";
 import { MolecularReport, ResourceSelector } from "@molit/fhir-components";
+import ConceptSelect from "@/components/ui/ConceptSelect";
 
 export default {
   data() {
@@ -367,6 +456,25 @@ export default {
       error: null,
       loading: false,
       fhirBaseUrl: config.FHIR_URL,
+
+      medicationSortFunction: (c1, c2) => {
+        if (!c1.selectTitle || !c2.selectTitle) {
+          return 0;
+        }
+        if (c1.selectTitle.includes("(") && !c2.selectTitle.includes("(")) {
+          return 1;
+        }
+        if (!c1.selectTitle.includes("(") && c2.selectTitle.includes("(")) {
+          return -1;
+        }
+        return c1.selectTitle.localeCompare(c2.selectTitle);
+      },
+
+      recommendations: [{}],
+
+      instantOfTimeList: ["Erstdiagnose", "Lokoregionäres Rezidiv", "Neue Fernmetastasierung", "Progrediente Erkrankung", "Stable disease", "Vollremisssion"],
+      evidenceLevelList: ["1", "2", "3A", "3B", "4"],
+      variants: ["BRCA1", "BRCA2", "HER2"],
 
       patientSelector: {
         searchAttributes: [
@@ -430,6 +538,8 @@ export default {
           }
         ]
       },
+
+      recommendationCategories: ["Leitlinie", "Off-Label"],
 
       showPatientSelector: false,
       showParticipantSelector: false,
@@ -747,6 +857,14 @@ export default {
       }
     },
 
+    onAddRecommendation() {
+      this.recommendations.push({});
+    },
+
+    onRemoveRecommendation(index) {
+      this.recommendations.splice(index, 1);
+    },
+
     cancel() {
       this.$router.push({ name: "documentation-overview" });
     }
@@ -770,11 +888,11 @@ export default {
   components: {
     AccountCircleIcon,
     Breadcrumps,
+    ConceptSelect,
     DeleteIcon,
     ListItem,
     MolecularReport,
     NotificationPanels,
-    PlusIcon,
     ResourceSelector,
     Spinner
   }
@@ -788,7 +906,7 @@ export default {
 }
 
 .documentation {
-  padding-bottom: 1rem;
+  padding-bottom: 12rem;
 }
 
 .main {
@@ -873,15 +991,26 @@ h6 {
   display: flex;
   justify-content: space-between;
 }
+
+.btn-link {
+  padding: 0;
+}
+
+tr.sub-heading {
+  th {
+    font-weight: 400;
+    font-style: italic;
+  }
+}
 </style>
 
 <style lang="scss">
 .molit-modal-dialog {
-  top: 66px !important;
-  height: calc(100vh - 66px) !important;
+  top: $navbar-height !important;
+  height: calc(100vh - #{$navbar-height}) !important;
 
   > div {
-    height: calc(100vh - 66px - 2rem) !important;
+    height: calc(100vh - #{$navbar-height} - 2rem) !important;
   }
 
   .btn-secondary {

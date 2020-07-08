@@ -22,6 +22,9 @@ yarn-error.log*
 # Licenses
 licenses
 
+# Unit Tests
+coverage
+
 # E2E
 /tests/e2e/videos/
 /tests/e2e/screenshots/

@@ -2,7 +2,7 @@
   <div>
     <navbar-login />
     <div class="login">
-      <LoginCard :title="$t('login.title')" :subtitle="$t('login.subtitle')" :text="$t('login.text')" :buttonText="$t('login.buttonText')" v-on:click="onLoginClick" />
+      <LoginCard :title="title" :subtitle="$t('login.subtitle')" :text="$t('login.text')" :buttonText="$t('login.buttonText')" v-on:click="onLoginClick" />
     </div>
   </div>
 </template>
@@ -18,8 +18,17 @@ export default {
   computed: {
     keycloak() {
       return this.$store.state.authentication.keycloak;
+    },
+
+    title() {
+      if (config.VITU_BRANDING) {
+        return this.$t("login.title");
+      } else {
+        return "MOLIT Conference";
+      }
     }
   },
+
   components: {
     LoginCard,
     NavbarLogin

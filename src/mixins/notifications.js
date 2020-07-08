@@ -35,7 +35,17 @@ export default {
       } else {
         this.error = handleAxiosError(error, this);
       }
-      window.scrollTo(0, 0);
+    }
+  },
+
+  mounted() {
+    if (this.$route.query.success) {
+      this.showSuccess = true;
+      this.success = this.$t(this.$route.query.success);
+    }
+    if (this.$route.query.error) {
+      this.showError = true;
+      this.error = this.$t(this.$route.query.error);
     }
   },
 
@@ -43,18 +53,21 @@ export default {
     error(newValue) {
       if (newValue) {
         this.showError = true;
+        window.scrollTo(0, 0);
       }
     },
 
     warning(newValue) {
       if (newValue) {
         this.showWarning = true;
+        window.scrollTo(0, 0);
       }
     },
 
     success(newValue) {
       if (newValue) {
         this.showSuccess = true;
+        window.scrollTo(0, 0);
       }
     }
   }

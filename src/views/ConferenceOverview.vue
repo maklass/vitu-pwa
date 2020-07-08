@@ -14,17 +14,22 @@
           <div class="conferences">
             <!-- FIXME: USE ID AS INDEX -->
             <router-link v-for="(conference, index) in paginatedRooms" :key="index" tag="div" :to="{ name: 'conference', params: { room: conference.janusId } }">
-              <conference-card :conference="conference" />
+              <conference-card :conference="conference" :dateFormat="conference.dateFormat" :showDaily="conference.showDaily" :showEntries="false" />
             </router-link>
           </div>
-          <b-pagination class="pagination" align="center" :total-rows="filteredRooms.length" :per-page="max" v-model="currentPage" />
+          <b-pagination class="pagination" align="center" :total-rows="paginatedRooms.length" :per-page="max" v-model="currentPage" />
         </div>
-        <div class="other-conferences" v-if="conferenceSettings && conferenceSettings.persistentRoomEnabled">
+        <div class="other-conferences">
           <h6>{{ $t("conference.otherConferences") }}</h6>
           <div class="conferences">
-            <router-link tag="div" class="conference-card" :to="{ name: 'conference', params: { room: 'adhoc' } }">
+            <router-link tag="div" class="conference-card" :to="{ name: 'conference', params: { room: 'adhoc' } }" v-if="conferenceSettings && conferenceSettings.persistentRoomEnabled">
               <div class="headline text-muted">
                 <conference-card :conference="{ tumorConference: { description: conferenceSettings.persistentRoomName, entries: [] } }" :showEntries="false" />
+              </div>
+            </router-link>
+            <router-link v-for="(conference, index) in persistentRooms" :key="index" tag="div" :to="{ name: 'conference', params: { room: conference.janusId } }">
+              <div class="headline text-muted">
+                <conference-card :conference="conference" :showEntries="false" :showDate="false" />
               </div>
             </router-link>
           </div>
@@ -40,6 +45,7 @@ import NotificationPanels from "@/components/ui/NotificationPanels";
 import config from "../config/config";
 import { getRoomsAccessible } from "@/api/video-api";
 import { handleAxiosError } from "@/util/error-util";
+import { addColonToISODateString } from "@/util/util";
 
 import Spinner from "vue-simple-spinner";
 import { mapState } from "vuex";
@@ -49,7 +55,7 @@ export default {
     return {
       error: null,
       rooms: null,
-      max: 20,
+      max: 30,
       currentPage: 1,
       searchTerm: null
     };
@@ -111,7 +117,27 @@ export default {
         return [];
       }
 
-      return this.filteredRooms.slice((this.currentPage - 1) * this.max, this.currentPage * this.max);
+      return this.filteredRooms
+        .filter(room => {
+          if (room && room.tumorConference && room.tumorConference.date && new Date(room.tumorConference.date).getFullYear() !== 2040) {
+            return true;
+          }
+          return false;
+        })
+        .slice((this.currentPage - 1) * this.max, this.currentPage * this.max);
+    },
+
+    persistentRooms() {
+      if (!this.filteredRooms) {
+        return [];
+      }
+
+      return this.filteredRooms.filter(room => {
+        if (room && room.tumorConference && room.tumorConference.date && new Date(room.tumorConference.date).getFullYear() === 2040) {
+          return true;
+        }
+        return false;
+      });
     },
 
     demo() {
@@ -125,6 +151,22 @@ export default {
         const response = await getRoomsAccessible(this.token);
         this.total = response.data.total;
         this.rooms = response.data.entity;
+        this.rooms.map(room => {
+          if (room && room.tumorConference && room.tumorConference.date) {
+            room.tumorConference.date = addColonToISODateString(room.tumorConference.date);
+            if (new Date(room.tumorConference.date).getFullYear() === 2030) {
+              if (new Date(room.tumorConference.date).getDay() === 0) {
+                room.dateFormat = "time";
+                room.showDaily = true;
+              } else {
+                room.dateFormat = "weekdayAndTime";
+              }
+            } else {
+              room.dateFormat = "long";
+            }
+          }
+          return room;
+        });
       } catch (e) {
         this.handleError(e);
       }

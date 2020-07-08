@@ -3,7 +3,7 @@
     <span v-for="(breadcrump, index) in breadcrumps" :key="breadcrump.name">
       <router-link :to="breadcrump.route" v-if="breadcrump.route">{{ breadcrump.name }}</router-link>
       <span v-if="!breadcrump.route">{{ breadcrump.name }}</span>
-      <span v-if="index !== breadcrumps.length - 1">&nbsp;<chevron-right-icon />&nbsp;</span>
+      <span v-if="index !== breadcrumps.length - 1"><chevron-right-icon />&nbsp;</span>
     </span>
   </div>
 </template>

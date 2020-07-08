@@ -13,11 +13,11 @@
       :fluid="true"
     />
     <div class="container-fluid" v-if="paramsInitialized">
-      <breadcrumps :breadcrumps="[{ name: $tc('worklist.worklist', 1), route: { name: 'clinical-case-list' } }]" />
+      <breadcrumps :breadcrumps="[{ name: $tc('worklist.worklist', 1), route: { name: 'clinical-cases' } }]" />
       <div class="page-header">
         <h5 class="headline">{{ $tc("worklist.worklist") }}</h5>
         <div class="spacer"></div>
-        <router-link class="btn btn-primary" :to="{ name: 'clinical-case-new' }">{{ $t("addClinicalCase") }}</router-link>
+        <router-link class="btn btn-primary" :to="{ name: 'patient-edit' }" :query="{ redirect: 'worklist' }">{{ $t("addClinicalCase") }}</router-link>
       </div>
       <div class="page-body">
         <div class="info-box" v-if="showInfoBox">
@@ -30,7 +30,7 @@
                 <input class="form-control" :placeholder="searchPlaceholder" v-model="search" @input="onSearch" />
                 <div class="input-group-append">
                   <select class="form-control" v-model="searchAttribute" @change="onChangeSearchAttribute">
-                    <option v-for="column in searchableColumns" :key="column.name" :value="column.search">{{ $t(`worklist.${column.name}`) }}</option>
+                    <option v-for="column in searchableColumns" :key="column.name" :value="column.search">{{ $tc(`worklist.${column.name}`) }}</option>
                   </select>
                 </div>
               </div>
@@ -61,7 +61,7 @@
             <tr class="row-header">
               <th v-for="column in columns" :key="column.name" @click="onSort(column.sort)" :class="[{ unsortable: !column.sort }]">
                 <div class="th-wrapper">
-                  <div>{{ $t(`worklist.${column.name}`) }}</div>
+                  <div>{{ $tc(`worklist.${column.name}`, 1) }}</div>
                   <div class="sort-icon-container">
                     <chevron-down-icon v-if="searchParams._sort === `-${column.sort}`" />
                     <chevron-up-icon v-else-if="searchParams._sort === column.sort" />
@@ -78,9 +78,15 @@
             <tr v-for="clinicalCase in clinicalCases" :key="clinicalCase.id" @click="onRowClicked(clinicalCase)" :class="[{ 'table-danger': clinicalCase.statusInactive, highlight: $route.query.highlight === clinicalCase.id }]">
               <td v-for="column in columns" :key="column.name" :class="[{ 'text-rights': column.name === 'birthDate' }]">
                 <span class="status-icons" v-if="tab === 'in-progress' && column.name === 'status'">
-                  <timer-sand-empty-icon class="icon" :style="{ color: getStatusIcon(clinicalCase) === 'TIMER' ? '#D06800' : '' }" />
-                  <calendar-range-icon class="icon" :style="{ color: getStatusIcon(clinicalCase) === 'CALENDAR' ? '#7A9814' : '' }" />
-                  <folder-account-icon class="icon" :style="{ color: getStatusIcon(clinicalCase) === 'FOLDER' ? '#148898' : '' }" />
+                  <span :style="{ color: getStatusIcon(clinicalCase) === 'TIMER' ? '#D06800 !important' : '' }">
+                    <timer-sand-empty-icon class="icon" />
+                  </span>
+                  <span :style="{ color: getStatusIcon(clinicalCase) === 'CALENDAR' ? '#7A9814' : '' }">
+                    <calendar-range-icon class="icon" />
+                  </span>
+                  <span :style="{ color: getStatusIcon(clinicalCase) === 'FOLDER' ? '#148898' : '' }">
+                    <folder-account-icon class="icon" />
+                  </span>
                 </span>
                 {{ getValueFromColumnName(clinicalCase, column) }}
               </td>
@@ -163,8 +169,12 @@ export default {
           name: "birthDate",
           search: "patient.birthdate"
         },
+        // {
+        //   name: "diagnosis"
+        // },
         {
-          name: "diagnosis"
+          name: "organization",
+          search: "patient.organization.name:contains"
         },
         {
           name: "status",
@@ -252,7 +262,7 @@ export default {
 
     async fetchReasonsForCancellation() {
       try {
-        const response = await fetchResources(config.FHIR_URL, "ValueSet", { url: "http://molit.eu/fhir/ValueSet/tumorboard-cancellation-reason" });
+        const response = await fetchResources(config.FHIR_URL, "ValueSet", { url: "http://molit.eu/fhir/vitu/ValueSet/tumorboard-cancellation-reason" });
         const entries = mapFhirResponse(response);
         if (entries && entries.length) {
           this.reasonsForCancellation = entries[0].compose.include[0].concept;
@@ -265,7 +275,7 @@ export default {
 
     async fetchStatuses() {
       try {
-        const valueSet = mapFhirResponse(await fetchResources(config.FHIR_URL, "ValueSet", { url: "http://molit.eu/fhir/ValueSet/vitu-workinglist" }, this.token))[0];
+        const valueSet = mapFhirResponse(await fetchResources(config.FHIR_URL, "ValueSet", { url: "http://molit.eu/fhir/vitu/ValueSet/vitu-workinglist" }, this.token))[0];
         if (!valueSet) {
           throw new Error("ValueSet 'vitu-worklist' not found on server.");
         }
@@ -283,9 +293,9 @@ export default {
         return null;
       }
 
-      const timerStatuses = ["diagnostic-start", "get-patient-consent", "order-genomic-test", "send-normal-tissue", "request-tumor-tissue", "send-tumor-tissue", "wait-for-report"];
-      const calendarStatuses = ["tumor-conference-ready"];
-      const folderStatuses = ["wait-for-case-review", "finalize-recommendation"];
+      const timerStatuses = ["new", "finished-case-submission", "wait-for-report", "specimen-sent"];
+      const calendarStatuses = ["case-review-announced", "report-ready"];
+      const folderStatuses = ["case-discussed"];
 
       if (timerStatuses.includes(code)) {
         return "TIMER";
@@ -404,6 +414,15 @@ export default {
           }
           break;
         }
+        case "organization": {
+          if (clinicalCase.for && clinicalCase.for.reference) {
+            const patient = this.getByReference(this.patients, clinicalCase.for.reference);
+            if (patient && patient.managingOrganization) {
+              return patient.managingOrganization.display;
+            }
+          }
+          break;
+        }
         case "status": {
           let text = null;
           if (this.statuses) {
@@ -518,6 +537,10 @@ th {
   .th-wrapper {
     display: flex;
   }
+}
+
+tr {
+  cursor: pointer;
 }
 
 .sort-icon-container {

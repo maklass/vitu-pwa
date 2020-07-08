@@ -13,6 +13,15 @@
           <button ref="addButton" class="btn btn-secondary btn-add" :disabled="!selectedUser" @click="addParticipantsToRoom(selectedUser.id)">{{ $t("add") }}</button>
         </div>
       </div>
+      <div class="form-row">
+        <div class="col-md-auto">
+          <button class="btn btn-secondary btn-add" @click="addAllParticipantsToRoom">{{ $t("addAll") }}</button>
+        </div>
+        <div class="col-md-auto">
+          <button class="btn btn-secondary btn-add" @click="deleteAllParticipantsFromRoom">{{ $t("deleteAll") }}</button>
+        </div>
+        <div class="col-md-auto" v-if="participants" style="align-self: center;">{{ participants.length }} {{ $tc("participant", participants.length) }}</div>
+      </div>
       <list-item class="list-item" v-for="user in participants" :key="user.id" :title="getTitleForUser(user)" :subtitle="user.username">
         <template slot="icon">
           <account-circle-icon class="account-icon" />
@@ -50,7 +59,7 @@ export default {
       participants: null,
       selectedUser: null,
       first: 0,
-      max: 1000
+      max: 10000
     };
   },
 
@@ -79,8 +88,8 @@ export default {
     async getUsers() {
       try {
         this.users = (await getUsers(this.token, this.first, this.max)).data.sort((e1, e2) => {
-          if (e1.firstName && typeof e1.firstName === "string" && e2.firstName && typeof e2.firstName === "string") {
-            return e1.firstName.localeCompare(e2.firstName);
+          if (e1.lastName && typeof e1.lastName === "string" && e2.lastName && typeof e2.lastName === "string") {
+            return e1.lastName.localeCompare(e2.lastName);
           }
         });
       } catch (e) {
@@ -94,8 +103,8 @@ export default {
         this.participants = this.users.filter(user => participantIds.includes(user.id));
 
         this.participants.sort((e1, e2) => {
-          if (e1.firstName && e2.firstName) {
-            return e1.firstName.localeCompare(e2.firstName);
+          if (e1.lastName && e2.lastName) {
+            return e1.lastName.localeCompare(e2.lastName);
           }
         });
       } catch (e) {
@@ -117,6 +126,15 @@ export default {
       }
     },
 
+    async addAllParticipantsToRoom() {
+      if (!this.users) {
+        return;
+      }
+
+      const participants = this.users.map(user => user.id);
+      this.addParticipantsToRoom(participants);
+    },
+
     async deleteParticipantsFromRoom(participants) {
       if (!participants) {
         return;
@@ -131,8 +149,17 @@ export default {
       }
     },
 
+    async deleteAllParticipantsFromRoom() {
+      if (!this.participants) {
+        return;
+      }
+
+      const participants = this.participants.map(participant => participant.id);
+      this.deleteParticipantsFromRoom(participants);
+    },
+
     getTitleForUser(user) {
-      let title = `${user.firstName || ""} ${user.lastName || ""}`;
+      let title = `${user.lastName || ""} ${user.firstName || ""}`;
 
       if (title && title.trim() !== "") {
         return title;

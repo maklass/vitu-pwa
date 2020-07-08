@@ -7,31 +7,38 @@
     </div>
     <div class="container-fluid">
       <div class="grid">
-        <link-tile v-if="isModerator || isAdmin" :title="$tc('worklist.worklist', 1)" class="link-tile" route="worklist">
+        <link-tile v-if="isModerator || isCaseManager" :title="$tc('worklist.worklist', 1)" class="link-tile" route="worklist">
           <template slot="header">
             <div class="link-tile-icon">
               <clipboard-text-icon />
             </div>
           </template>
         </link-tile>
-        <link-tile v-if="isModerator || isAdmin" :title="$tc('planner.conferencePlanner', 1)" class="link-tile" route="planner">
+        <link-tile v-if="isModerator" :title="$tc('planner.conferencePlanner', 1)" class="link-tile" route="planner">
           <template slot="header">
             <div class="link-tile-icon">
               <calendar-range-icon />
             </div>
           </template>
         </link-tile>
-        <link-tile :title="$tc('conference.videoConference', 1)" class="link-tile" route="conference">
+        <link-tile v-if="isParticipant || isModerator" :title="$tc('conference.videoConference', 1)" class="link-tile" route="conference">
           <template slot="header">
             <div class="link-tile-icon">
               <message-video-icon />
             </div>
           </template>
         </link-tile>
-        <link-tile v-if="isModerator || isAdmin" :title="$tc('documentation.documentation', 1)" :class="['link-tile', { disabled: deactivateDocumentation }]" :route="deactivateDocumentation ? '' : 'documentation'">
+        <link-tile v-if="isModerator" :title="$tc('documentation.documentation', 1)" :class="['link-tile', { disabled: deactivateDocumentation }]" :route="deactivateDocumentation ? '' : 'documentation'">
           <template slot="header">
             <div class="link-tile-icon">
               <folder-account-icon />
+            </div>
+          </template>
+        </link-tile>
+        <link-tile v-if="isAdmin" :title="$t('admin.adminArea')" class="link-tile" route="admin">
+          <template slot="header">
+            <div class="link-tile-icon">
+              <wrench-icon />
             </div>
           </template>
         </link-tile>
@@ -41,12 +48,12 @@
 </template>
 
 <script>
-import Navbar from "@/components/Navbar";
 import LinkTile from "@/components/LinkTile";
 import ClipboardTextIcon from "vue-material-design-icons/ClipboardText";
 import CalendarRangeIcon from "vue-material-design-icons/CalendarRange";
 import MessageVideoIcon from "vue-material-design-icons/MessageVideo";
 import FolderAccountIcon from "vue-material-design-icons/FolderAccount";
+import WrenchIcon from "vue-material-design-icons/Wrench";
 import { mapState } from "vuex";
 
 import config from "../config/config";
@@ -83,16 +90,40 @@ export default {
       } else {
         return false;
       }
+    },
+
+    isCaseManager() {
+      if (this.keycloak) {
+        return this.keycloak.hasRealmRole(roles.CASE_MANAGER);
+      } else {
+        return false;
+      }
+    },
+
+    isFreigeber() {
+      if (this.keycloak) {
+        return this.keycloak.hasRealmRole(roles.FREIGEBER);
+      } else {
+        return false;
+      }
+    },
+
+    isParticipant() {
+      if (this.keycloak) {
+        return this.keycloak.hasRealmRole(roles.USER);
+      } else {
+        return false;
+      }
     }
   },
 
   components: {
-    Navbar,
     LinkTile,
     ClipboardTextIcon,
     CalendarRangeIcon,
     MessageVideoIcon,
-    FolderAccountIcon
+    FolderAccountIcon,
+    WrenchIcon
   }
 };
 </script>

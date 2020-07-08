@@ -13,17 +13,20 @@ const config = {
   SECURITY_URL: process.env.VUE_APP_SECURITY_URL,
   DEMO: process.env.VUE_APP_DEMO === "true",
   DEFAULT_CONFERENCE_SETTINGS: {
-    bitrate: 350,
+    showVideo: true,
+    bitrate: 256,
     aspectRatio: "16:10",
     cutVideoStreams: true,
     persistentRoomEnabled: true,
     persistentRoomName: "Allgemeiner Konferenzraum",
-    showDateTimeInTitle: true
+    showDateTimeInTitle: true,
+    maxNumberOfVideos: 8
   },
   SUCCESS_HEADER_TIMEOUT: 10000,
   ADHOC_ROOM_DESCRIPTION: "fc2d99de-29fe-4d08-8dc8-92167876551a",
   MAX_LENGTH_CONFERENCE_NAME: 50,
-  DEACTIVATE_DOCUMENTATION: process.env.VUE_APP_DEACTIVATE_DOCUMENTATION === "true"
+  DEACTIVATE_DOCUMENTATION: process.env.VUE_APP_DEACTIVATE_DOCUMENTATION === "true",
+  VITU_BRANDING: process.env.VUE_APP_VITU_BRANDING !== "false"
 };
 
 export default config;

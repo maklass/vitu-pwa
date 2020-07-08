@@ -17,6 +17,7 @@
                 {{ $t("conference.tutorial") }}
               </p>
               <button autofocus class="btn btn-primary" @click="goToConference">{{ $t("conference.enterConference") }}</button>
+              <router-link v-if="!deactivateDocumentation" class="btn btn-secondary ml-2" :to="{ name: 'conference-moderator' }">{{ $t("openCaseOverview") }}</router-link>
             </div>
           </div>
           <div class="card" v-if="error">
@@ -39,11 +40,16 @@
           :ratioY="ratioY"
           :cutVideoStreams="conferenceSettings.cutVideoStreams"
           :bitrate="conferenceSettings.bitrate"
+          :showVideoInitially="conferenceSettings.showVideo"
+          :turnUrl="conferenceSettings.turnUrl"
+          :turnUser="conferenceSettings.turnUser"
+          :turnSecret="conferenceSettings.turnSecret"
           :room="roomId"
           :roomToken="roomToken"
           :roomName="roomName"
           :roomDate="roomDate"
           :showRoomDate="conferenceSettings.showDateTimeInTitle"
+          :maxNumberOfVideos="conferenceSettings.maxNumberOfVideos"
         />
       </div>
     </div>
@@ -84,6 +90,10 @@ export default {
 
     demo() {
       return config.DEMO;
+    },
+
+    deactivateDocumentation() {
+      return config.DEACTIVATE_DOCUMENTATION;
     },
 
     ratioX() {
@@ -144,28 +154,6 @@ export default {
       }
     },
 
-    async goToVideoConference(conference) {
-      let entries = conference.tumorConference.entries;
-
-      if (!this.demo) {
-        this.entries = entries;
-        const participants = [
-          "e2e25d6d-0281-4b29-a022-fd8a05d29fb4",
-          "34cc73df-63e8-46d9-93bf-5586f8340976",
-          "088b694b-9fba-4999-b57e-14a70738dd56",
-          "e1eaa4be-ef25-4dbe-88ab-c13751e43ab1",
-          "7b65fb08-b33a-4c91-9f1d-127927cd0cb0",
-          "fb7aceab-b5d3-431c-a523-96abbe0ac99c",
-          "e00a58a3-d721-4de4-b026-b0c2d23e11a3"
-        ];
-        await addParticipantsToRoom(conference.janusId, participants, this.token);
-        this.$router.push({ name: "conference", params: { room: conference.janusId } });
-        this.showVideoConference = true;
-      } else {
-        this.goToDemoConference();
-      }
-    },
-
     async goToDemoConference() {
       this.loadingDemo = true;
       const responseRoom = await addRoom("Demo", new Date(), this.token);
@@ -204,6 +192,24 @@ export default {
 
   mounted() {
     this.initialize();
+  },
+
+  async beforeRouteLeave(to, from, next) {
+    if (!this.showVideoConference) {
+      next();
+      return;
+    }
+
+    const answer = await this.$bvModal.msgBoxConfirm(this.$t("reallyLeaveConference"), {
+      title: this.$t("pleaseConfirm"),
+      okTitle: this.$t("conference.leaveConference"),
+      cancelTitle: this.$t("cancel")
+    });
+    if (!answer) {
+      next(false);
+    } else {
+      next();
+    }
   },
 
   components: {

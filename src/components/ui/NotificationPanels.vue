@@ -1,5 +1,5 @@
 <template>
-  <div class="notification-panels">
+  <div class="notification-panels" :style="{ 'margin-left': marginLeft }">
     <div :class="['error-header', { 'header-hidden': !showError }]">
       <div :class="[{ container: !fluid, 'container-fluid': fluid }]">
         <div class="row">
@@ -63,6 +63,10 @@ export default {
     fluid: {
       type: Boolean,
       default: false
+    },
+    marginLeft: {
+      type: String,
+      default: "0"
     }
   }
 };

@@ -31,7 +31,7 @@ export default {
 
 <style lang="scss" scoped>
 .content {
-  padding-top: 66px;
+  padding-top: $navbar-height;
   min-height: 100vh;
   display: flex;
   flex-direction: column;

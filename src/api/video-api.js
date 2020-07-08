@@ -32,6 +32,7 @@ export const addRoom = (description, date, token) => {
     URL_ROOMS,
     {
       description,
+      publishers: 50,
       tumorConference: {
         description,
         date,
@@ -198,7 +199,7 @@ export const getAccessTokenForRoom = (roomId, token) => {
  * @param {oage} [page] - the page
  * @returns {Promise} the response as promise
  */
-export const getRooms = (token, size = 1000, page = 1) => {
+export const getRooms = (token, size = 100000, page = 1) => {
   return get(URL_ROOMS, { size, page }, token);
 };
 

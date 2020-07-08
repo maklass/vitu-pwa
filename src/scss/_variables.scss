@@ -2,12 +2,13 @@ $vitu-green: #148898;
 $vitu-blue: #004a6b;
 $vitu-light-green: #99bfbf;
 $vitu-background: #ecf0f1;
+$vitu-grey: rgba(0, 0, 0, 0.5);
 $vitu-dark-grey: #454545;
 $vitu-danger: #ff4136;
 $vitu-warning: #FFD97D;
 $vitu-text: #212529;
 
-$border-color: rgba(0, 0, 0, 0.125);
+$border-color: rgba(0, 0, 0, 0.1);
 
 $theme-colors: (
   "primary": $vitu-green,
@@ -16,6 +17,12 @@ $theme-colors: (
 );
 $enable-shadows: false;
 
+$custom-file-text: (
+  en: "Browse",
+  es: "Elegir",
+  de: "Durchsuchen"
+);
+
 /*
 a = 122px
 b = 333px
@@ -23,3 +30,4 @@ c = 355px
 alpha = arcsin(122px/355px) = 20deg
 */
 $vitu-angle: 70deg;
+$navbar-height: 60px;

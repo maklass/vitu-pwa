@@ -30,7 +30,7 @@ export default {
 .item {
   display: flex;
   padding: 0;
-  height: 3em;
+  height: 2.4rem;
   align-items: center;
 }
 

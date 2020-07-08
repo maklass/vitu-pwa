@@ -25,8 +25,12 @@
           @keydown="onTyping"
         />
         <i18n path="chat.inputHelp" tag="small" class="form-text input-help">
-          <kbd place="enter">Enter</kbd>
-          <kbd place="shift">⇧</kbd>
+          <template #enter>
+            <kbd>Enter</kbd>
+          </template>
+          <template #shift>
+            <kbd>⇧</kbd>
+          </template>
         </i18n>
       </div>
     </div>
@@ -170,7 +174,7 @@ export default {
 }
 
 .message-container {
-  margin: 0 15px 15px 15px;
+  margin: 0 8px 8px 8px;
   background: $vitu-background;
   border-radius: 0.25rem;
   padding: 8px;

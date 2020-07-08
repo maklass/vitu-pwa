@@ -1,3 +1,327 @@
+export const compositionTemplate = {
+  resourceType: "Composition",
+  status: "preliminary",
+
+  type: {
+    coding: [
+      {
+        system: null,
+        code: null,
+        display: null
+      }
+    ]
+  },
+  date: null,
+  author: [{ reference: null }],
+  title: null,
+  subject: {
+    reference: null
+  },
+  encounter: {
+    reference: null
+  },
+  section: []
+};
+
+export const listTemplate = {
+  resourceType: "List",
+  status: null,
+  mode: null,
+  code: {
+    coding: [
+      {
+        system: null,
+        code: null,
+        display: null
+      }
+    ]
+  },
+  subject: {
+    reference: null
+  },
+  encounter: {
+    reference: null
+  },
+  source: {
+    reference: null
+  },
+  entry: [
+    {
+      item: {
+        reference: null
+      }
+    }
+  ]
+};
+
+export const encounterTemplate = {
+  resourceType: "Encounter",
+  status: null,
+  class: {
+    system: null,
+    code: null,
+    display: null
+  },
+  type: {
+    coding: [
+      {
+        system: null,
+        code: null,
+        display: null
+      }
+    ]
+  },
+  subject: {
+    reference: null
+  },
+  partOf: {
+    reference: null
+  }
+};
+
+export const commentTemplate = {
+  resourceType: "Observation",
+  extension: [
+    {
+      url: "http://hl7.org/fhir/StructureDefinition/workflow-episodeOfCare",
+      valueReference: {
+        reference: null
+      }
+    }
+  ],
+  status: "final",
+  code: {
+    coding: [
+      {
+        system: "http://molit.eu/fhir/CodeSystem/vitu-observation-note-types",
+        code: "tumor-board-preparation",
+        display: "Tumorboard Vorbereitung"
+      },
+      {
+        system: "http://ncit.nci.nih.gov",
+        code: "C42619",
+        display: "Note"
+      }
+    ],
+    text: "Vorbereitungsnotiz"
+  },
+  subject: {
+    reference: null
+  },
+  performer: [
+    {
+      display: null
+    }
+  ],
+  effectiveDateTime: null,
+  valueString: null
+};
+
+export const observationTemplate = {
+  resourceType: "Observation",
+  status: null,
+  code: {
+    coding: [
+      {
+        system: null,
+        code: null,
+        display: null
+      }
+    ],
+    text: null
+  },
+  subject: {
+    reference: null
+  },
+  encounter: {
+    reference: null
+  },
+  performer: [
+    {
+      reference: null
+    }
+  ],
+  effectiveDateTime: null,
+  valueCodeableConcept: {},
+  valueString: null
+};
+
+export const valueCodeableConceptTemplate = {
+  coding: [
+    {
+      system: null,
+      code: null,
+      display: null
+    }
+  ]
+};
+
+export const conditionTemplate = {
+  resourceType: "Condition",
+  clinicalStatus: {
+    coding: [
+      {
+        system: null,
+        code: null
+      }
+    ]
+  },
+  code: {
+    coding: [
+      {
+        system: null,
+        code: null,
+        display: null
+      }
+    ]
+  },
+  subject: {},
+  onsetDateTime: null,
+  note: [
+    {
+      text: null
+    }
+  ]
+};
+
+export const procedureTemplate = {
+  resourceType: "Procedure",
+  extension: [
+    {
+      url: null,
+      valueReference: {
+        reference: null
+      }
+    }
+  ],
+  status: null,
+  category: {
+    coding: [
+      {
+        system: null,
+        code: null,
+        display: null
+      }
+    ]
+  },
+  code: {
+    coding: [
+      {
+        system: null,
+        code: null,
+        display: null
+      }
+    ]
+  },
+  subject: {
+    reference: null
+  },
+  performedDateTime: null,
+  performedPeriod: {
+    start: null,
+    end: null
+  },
+  reasonReference: [
+    {
+      reference: null
+    }
+  ]
+};
+
+export const medicationStatementTemplate = {
+  resourceType: "MedicationStatement",
+  status: null,
+  medicationCodeableConcept: {
+    coding: [
+      {
+        system: null,
+        code: null,
+        display: null
+      }
+    ]
+  },
+  subject: {
+    reference: null
+  },
+  context: {
+    reference: null
+  },
+  effectivePeriod: {
+    start: null,
+    end: null
+  },
+  reasonReference: [
+    {
+      reference: null
+    }
+  ]
+};
+
+export const documentReferenceTemplate = {
+  resourceType: "DocumentReference",
+  status: null,
+  type: {
+    coding: [
+      {
+        system: null,
+        code: null,
+        display: null
+      }
+    ]
+  },
+  subject: {
+    reference: null
+  },
+  author: {
+    reference: null
+  },
+  content: [
+    {
+      attachment: {
+        id: null,
+        contentType: null,
+        url: null
+      }
+    }
+  ]
+};
+
+export const consentTemplate = {
+  resourceType: "Consent",
+  status: "",
+  scope: {
+    coding: [
+      {
+        system: null,
+        code: null,
+        display: null
+      }
+    ]
+  },
+  category: {
+    coding: [
+      {
+        system: null,
+        code: null,
+        display: null
+      }
+    ]
+  },
+  patient: {
+    reference: null
+  },
+  dateTime: null,
+  policyRule: {
+    coding: [
+      {
+        system: null,
+        code: null,
+        display: null
+      }
+    ]
+  }
+};
+
 export const taskTemplate = {
   resourceType: "Task",
   status: "in-progress",
@@ -25,7 +349,7 @@ export const taskTemplate = {
   businessStatus: {
     coding: [
       {
-        system: "http://molit.eu/fhir/ValueSet/vitu-workinglist",
+        system: "http://molit.eu/fhir/vitu/ValueSet/vitu-workinglist",
         code: null,
         display: null
       }
@@ -57,12 +381,7 @@ export const reasonCancelledExtension = {
 
 export const patientTemplate = {
   resourceType: "Patient",
-  identifier: [
-    {
-      system: "http://molit.eu/fhir/NamingSystem/generic-vitu-patient",
-      value: null
-    }
-  ],
+  identifier: [],
   active: true,
   name: [
     {
@@ -77,12 +396,7 @@ export const patientTemplate = {
 
 export const episodeofCareTemplate = {
   resourceType: "EpisodeOfCare",
-  identifier: [
-    {
-      system: "http://molit.eu/fhir/NamingSystem/generic-vitu-episode-of-care",
-      value: null
-    }
-  ],
+  identifier: [],
   patient: {
     reference: null,
     display: null
@@ -91,6 +405,102 @@ export const episodeofCareTemplate = {
     {
       condition: {
         display: null
+      }
+    }
+  ]
+};
+
+export const binaryTemplate = {
+  resourceType: "Binary",
+  contentType: null,
+  data: null
+};
+
+export const documentReference = {
+  resourceType: "DocumentReference",
+  status: "current",
+  type: {
+    coding: [
+      {
+        system: null,
+        code: null,
+        display: null
+      }
+    ]
+  },
+  subject: {
+    reference: null
+  },
+  content: [
+    {
+      attachment: {
+        id: null,
+        contentType: null,
+        url: null
+      }
+    }
+  ]
+};
+
+export const transactionPostCompostionTemplate = {
+  resourceType: "Bundle",
+  type: "transaction",
+  entry: []
+};
+
+export const transactionTemplate = {
+  resourceType: "Bundle",
+  type: "transaction",
+  entry: []
+};
+
+export const transactionPostPatientTemplate = {
+  resourceType: "Bundle",
+  type: "transaction",
+  entry: [
+    {
+      fullUrl: null,
+      resource: null,
+      request: {
+        method: "POST",
+        url: "EpisodeOfCare"
+      }
+    },
+    {
+      fullUrl: null,
+      resource: null,
+      request: {
+        method: "POST",
+        url: "Patient"
+      }
+    },
+    {
+      fullUrl: null,
+      resource: null,
+      request: {
+        method: "POST",
+        url: "Task"
+      }
+    }
+  ]
+};
+
+export const transactionPutPatientTemplate = {
+  resourceType: "Bundle",
+  type: "transaction",
+  entry: [
+    {
+      resource: null,
+      request: {
+        method: "PUT",
+        url: "EpisodeOfCare/"
+      }
+    },
+    {
+      resource: null,
+      request: {
+        method: "PUT",
+        url: "Patient/"
       }
     }
   ]
@@ -168,4 +578,13 @@ export const statusTemplate = {
   ],
   code: null,
   display: null
+};
+
+export const organizationTemplate = {
+  resourceType: "Organization",
+  name: null,
+  active: true,
+  partOf: null,
+  contact: [],
+  address: []
 };

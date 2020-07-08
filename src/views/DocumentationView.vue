@@ -57,7 +57,7 @@
           </fieldset>
           <fieldset>
             <div>
-              <legend>{{ $t("worklist.patient") }}</legend>
+              <legend>{{ $tc("worklist.patient", 1) }}</legend>
             </div>
             <div v-if="patient">
               <div class="form-group row readonly">

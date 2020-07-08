@@ -26,7 +26,7 @@ export default {
       required: true
     },
     route: {
-      type: Object | String,
+      type: [Object, String],
       required: true
     },
     count: {

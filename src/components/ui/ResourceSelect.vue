@@ -198,6 +198,9 @@ export default {
   },
 
   created() {
+    if (this.value) {
+      this.selectedResource = this.value.name;
+    }
     this.update = debounce(this.updateResources, this.searchDebounceTime);
     this.update("", () => {});
   }

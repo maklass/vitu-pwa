@@ -10,11 +10,11 @@
         </div>
         <div v-if="debugInformation && participant.stream" class="debug-information" @click="toggleDebugInformation"></div>
       </div>
-      <div v-if="fullScreen">
+      <div v-if="fullScreen" class="video-fullscreen-wrapper">
         <div class="video-loading" v-if="participant.loading">
           <div>Loading...</div>
         </div>
-        <video-stream class="video-fullscreen" :stream="participant.stream" :mirrored="mirrored" :muted="muted" ref="videoConferenceItem" />
+        <video-stream class="video-fullscreen" width="100%" height="100%" :stream="participant.stream" :mirrored="mirrored" :muted="muted" ref="videoConferenceItem" />
       </div>
       <div class="card-footer video-menu">
         <div class="caption">{{ participant.caption }}</div>
@@ -24,24 +24,28 @@
           <volume-off-icon v-if="!participant.local && participant.muted" />
         </div>-->
         <div class="spacer"></div>
-        <div class="toggle-link" @click="toggleVideo" v-if="participant.local">
-          <video-icon v-if="video" :title="$t('conference.muteVideo')" />
-          <video-off-icon v-if="!video" :title="$t('conference.unmuteVideo')" />
+        <div id="el-audio" class="toggle-link" @click="$emit('toggleAudio')" :style="{ display: participant.local ? '' : 'none' }">
+          <microphone-icon v-if="audio" title="" />
+          <microphone-off-icon v-if="!audio" title="" />
         </div>
-        <div class="toggle-link" @click="toggleAudio" :style="{ visibility: participant.local ? '' : 'hidden' }">
-          <microphone-icon v-if="audio" :title="$t('conference.muteAudio')" />
-          <microphone-off-icon v-if="!audio" :title="$t('conference.unmuteAudio')" />
+        <div id="el-video" class="toggle-link" @click="$emit('toggleVideo')" v-if="participant.local">
+          <video-icon v-if="video" title="" />
+          <video-off-icon v-if="!video" title="" />
         </div>
-        <div v-if="!participant.local">
-          <network-strength1-alert-icon class="network-strength-alert-icon" v-if="parseInt(this.participant.pluginHandle.getBitrate()) === 0" />
-          <network-strength1-icon class="network-strength-icon" v-else-if="parseInt(this.participant.pluginHandle.getBitrate()) <= 200 && parseInt(this.participant.pluginHandle.getBitrate()) > 0" />
-          <network-strength2-icon class="network-strength-icon" v-else-if="parseInt(this.participant.pluginHandle.getBitrate()) <= 400 && parseInt(this.participant.pluginHandle.getBitrate()) > 200" />
-          <network-strength3-icon class="network-strength-icon" v-else-if="parseInt(this.participant.pluginHandle.getBitrate()) <= 500 && parseInt(this.participant.pluginHandle.getBitrate()) > 400" />
-          <network-strength4-icon class="network-strength-icon" v-else-if="parseInt(this.participant.pluginHandle.getBitrate()) > 500" />
+        <div v-if="!participant.local" :id="participant.id + 'network-strength'">
+          <network-strength1-alert-icon class="network-strength-alert-icon" title="" v-if="parseInt(this.participant.pluginHandle.getBitrate()) === 0" />
+          <network-strength1-icon class="network-strength-icon" title="" v-else-if="parseInt(this.participant.pluginHandle.getBitrate()) <= bitrate * 0.25 && parseInt(this.participant.pluginHandle.getBitrate()) > 0" />
+          <network-strength2-icon class="network-strength-icon" title="" v-else-if="parseInt(this.participant.pluginHandle.getBitrate()) <= bitrate * 0.5 && parseInt(this.participant.pluginHandle.getBitrate()) > bitrate * 0.25" />
+          <network-strength3-icon class="network-strength-icon" title="" v-else-if="parseInt(this.participant.pluginHandle.getBitrate()) <= bitrate * 0.75 && parseInt(this.participant.pluginHandle.getBitrate()) > bitrate * 0.5" />
+          <network-strength4-icon class="network-strength-icon" title="" v-else-if="parseInt(this.participant.pluginHandle.getBitrate()) > bitrate * 0.75" />
         </div>
-        <div class="toggle-link" @click="toggleFullScreen" v-if="!participant.local">
+        <div :id="participant.id + 'toggle-fullscreen'" class="toggle-link" @click="toggleFullScreen" v-if="!participant.local">
           <full-screen-icon></full-screen-icon>
         </div>
+        <b-tooltip target="el-audio" triggers="hover" :title="audio ? $t('conference.muteAudio') : $t('conference.unmuteAudio')" />
+        <b-tooltip target="el-video" triggers="hover" :title="$t('conference.muteVideo')" />
+        <b-tooltip v-if="!participant.local" :target="participant.id + 'network-strength'" :title="participant.pluginHandle.getBitrate()"></b-tooltip>
+        <b-tooltip :target="participant.id + 'toggle-fullscreen'" triggers="hover" :title="$t('fullscreen')" />
       </div>
     </div>
   </div>
@@ -53,11 +57,8 @@ import VideoIcon from "vue-material-design-icons/Video";
 import VideoOffIcon from "vue-material-design-icons/VideoOff";
 import MicrophoneIcon from "vue-material-design-icons/Microphone";
 import MicrophoneOffIcon from "vue-material-design-icons/MicrophoneOff";
-import VolumeOffIcon from "vue-material-design-icons/VolumeOff";
-import VolumeLowIcon from "vue-material-design-icons/VolumeLow";
-import VolumeHighIcon from "vue-material-design-icons/VolumeHigh";
-import NetworkStrength1AlertIcon from "vue-material-design-icons/NetworkStrength1Alert";
 import FullScreenIcon from "vue-material-design-icons/Fullscreen";
+import NetworkStrength1AlertIcon from "vue-material-design-icons/NetworkStrength1Alert";
 import NetworkStrength1Icon from "vue-material-design-icons/NetworkStrength1";
 import NetworkStrength2Icon from "vue-material-design-icons/NetworkStrength2";
 import NetworkStrength3Icon from "vue-material-design-icons/NetworkStrength3";
@@ -82,6 +83,11 @@ export default {
     mirrored: {
       type: Boolean,
       default: false
+    },
+
+    bitrate: {
+      type: Number,
+      default: 500
     },
 
     ratioX: {
@@ -110,14 +116,22 @@ export default {
     fullScreen: {
       type: Boolean,
       default: false
+    },
+
+    audio: {
+      type: Boolean,
+      default: true
+    },
+
+    video: {
+      type: Boolean,
+      default: false
     }
   },
 
   data() {
     return {
-      debugInformation: false,
-      audio: true,
-      video: true
+      debugInformation: false
     };
   },
 
@@ -127,6 +141,10 @@ export default {
      */
     paddingTop() {
       return (100 * this.ratioY) / this.ratioX + "%";
+    },
+
+    display() {
+      return this.participant && this.participant.stream && this.participant.stream.getVideoTracks() && this.participant.stream.getVideoTracks().length > 0;
     }
   },
 
@@ -137,41 +155,6 @@ export default {
 
     toggleDebugInformation() {
       this.debugInformation = !this.debugInformation;
-    },
-
-    toggleAudio() {
-      this.audio = !this.audio;
-    },
-
-    toggleVideo() {
-      this.video = !this.video;
-    }
-  },
-
-  watch: {
-    audio: {
-      handler() {
-        if (this.participant.local) {
-          if (this.audio) {
-            this.participant.unmuteAudio();
-          } else {
-            this.participant.muteAudio();
-          }
-          this.$emit("mute", !this.audio);
-        }
-      }
-    },
-
-    video: {
-      handler() {
-        if (this.participant.local) {
-          if (this.video) {
-            this.participant.unmuteVideo();
-          } else {
-            this.participant.muteVideo();
-          }
-        }
-      }
     }
   },
 
@@ -181,10 +164,10 @@ export default {
     VideoOffIcon,
     MicrophoneIcon,
     MicrophoneOffIcon,
-    VolumeOffIcon,
+    // VolumeOffIcon,
     FullScreenIcon,
-    VolumeLowIcon,
-    VolumeHighIcon,
+    // VolumeLowIcon,
+    // VolumeHighIcon,
     NetworkStrength1AlertIcon,
     NetworkStrength1Icon,
     NetworkStrength2Icon,
@@ -322,5 +305,10 @@ export default {
 .video-fullscreen {
   width: 100%;
   height: 100%;
+  max-height: calc(100vh - #{$navbar-height} - 100px);
+}
+
+.video-fullscreen-wrapper {
+  background: black;
 }
 </style>

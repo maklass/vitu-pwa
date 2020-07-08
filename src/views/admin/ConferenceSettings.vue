@@ -7,13 +7,19 @@
         <h5 class="headline">{{ $t("admin.conferenceSettings") }}</h5>
       </div>
       <div class="page-body">
-        <spinner v-if="!settings && !error" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" />
-        <div v-if="settings">
-          <form @submit.prevent="save" ref="form">
+        <spinner v-if="loading" line-fg-color="#148898" line-bg-color="#99bfbf" size="medium" :speed="1.5" />
+        <div v-if="settings && !loading">
+          <form @submit.prevent="save" ref="form" autocomplete="off">
+            <div class="form-group row">
+              <label for="showVideo" class="col-md-3 col-form-label">{{ $t("showVideo") }}</label>
+              <div class="col-md-9 active-container">
+                <input type="checkbox" id="showVideo" v-model="settings.showVideo" />
+              </div>
+            </div>
             <div class="form-group row">
               <label for="bitrate" class="col-md-3 col-form-label">{{ $t("admin.bitrate") }}</label>
               <div class="col-md-9">
-                <select class="form-control" id="aspect-ratio" v-model="settings.bitrate">
+                <select class="form-control" id="bitrate" v-model="settings.bitrate">
                   <option v-for="bitrate in bitrates" :key="bitrate.value" :value="bitrate.value">{{ $t(`admin.bitrates.${bitrate.display}`) }} {{ bitrate.value !== 0 ? `(${bitrate.value} kbit/s)` : "" }}</option>
                 </select>
               </div>
@@ -32,6 +38,12 @@
                 <input type="checkbox" id="cutVideoStreams" v-model="settings.cutVideoStreams" />
               </div>
             </div>
+            <div class="form-group row">
+              <label for="maxNumberOfVideos" class="col-md-3 col-form-label">{{ $t("maxNumberOfVideos") }}</label>
+              <div class="col-md-9">
+                <input type="number" min="0" step="1" class="form-control" id="maxNumberOfVideos" :placeholder="$t('maxNumberOfVideos')" v-model.number="settings.maxNumberOfVideos" />
+              </div>
+            </div>
             <hr />
             <div class="form-group row">
               <label for="persistentRoomEnabled" class="col-md-3 col-form-label">{{ $t("admin.persistentRoomEnabled") }}</label>
@@ -42,7 +54,7 @@
             <div class="form-group row">
               <label for="persistentRoomName" class="col-md-3 col-form-label">{{ $t("admin.persistentRoomName") }}</label>
               <div class="col-md-9">
-                <input type="text" :maxlength="maxLengthConferenceName" class="form-control" id="persistentRoomName" :placeholder="$t('admin.persistentRoomName')" v-model.number="settings.persistentRoomName" />
+                <input type="text" :maxlength="maxLengthConferenceName" class="form-control" id="persistentRoomName" :placeholder="$t('admin.persistentRoomName')" v-model="settings.persistentRoomName" />
               </div>
             </div>
             <hr />
@@ -50,6 +62,25 @@
               <label for="showDateTimeInTitle" class="col-md-3 col-form-label">{{ $t("admin.showDateTimeInTitle") }}</label>
               <div class="col-md-9 active-container">
                 <input type="checkbox" id="showDateTimeInTitle" v-model="settings.showDateTimeInTitle" />
+              </div>
+            </div>
+            <hr />
+            <div class="form-group row">
+              <label for="turnUrl" class="col-md-3 col-form-label">{{ $t("admin.turnUrl") }}</label>
+              <div class="col-md-9">
+                <input type="text" class="form-control" id="turnUrl" :placeholder="$t('admin.turnUrl')" v-model="settings.turnUrl" />
+              </div>
+            </div>
+            <div class="form-group row">
+              <label for="turnUser" class="col-md-3 col-form-label">{{ $t("admin.turnUser") }}</label>
+              <div class="col-md-9">
+                <input type="text" class="form-control" id="turnUser" autocomplete="off" :placeholder="$t('admin.turnUser')" v-model="settings.turnUser" />
+              </div>
+            </div>
+            <div class="form-group row">
+              <label for="turnSecret" class="col-md-3 col-form-label">{{ $t("admin.turnSecret") }}</label>
+              <div class="col-md-9">
+                <input type="password" autocomplete="new-password" class="form-control" id="turnSecret" :placeholder="$t('admin.turnSecret')" v-model="settings.turnSecret" />
               </div>
             </div>
           </form>
@@ -69,7 +100,6 @@ import NotificationPanels from "@/components/ui/NotificationPanels";
 import config from "@/config/config";
 import aspectRatios from "@/model/aspect-ratios";
 import bitrates from "@/model/bitrates";
-import { handleAxiosError } from "@/util/error-util";
 import notifications from "@/mixins/notifications";
 
 import Spinner from "vue-simple-spinner";
@@ -81,7 +111,7 @@ export default {
   data() {
     return {
       showSuccess: false,
-      error: null
+      loading: false
     };
   },
 
@@ -108,14 +138,8 @@ export default {
   methods: {
     ...mapActions(["updateConferenceSettings"]),
 
-    handleError(error) {
-      this.error = handleAxiosError(error, this);
-      window.scrollTo(0, 0);
-    },
-
     onSubmit() {
       if (!this.$refs.form.checkValidity()) {
-        // Try focus on the error
         this.$refs.form.reportValidity();
         return;
       }
@@ -124,15 +148,19 @@ export default {
 
     async save() {
       this.showSuccess = false;
+      this.loading = true;
       try {
         let settings = Object.assign({}, config.DEFAULT_CONFERENCE_SETTINGS, this.settings);
         await this.updateConferenceSettings({ token: this.token, settings });
         this.showSuccess = true;
+        this.loading = false;
+        window.scrollTo(0, 0);
         setTimeout(() => {
           this.showSuccess = false;
         }, config.SUCCESS_HEADER_TIMEOUT);
       } catch (e) {
         this.handleError(e);
+        this.loading = false;
       }
     }
   },

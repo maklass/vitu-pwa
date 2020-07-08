@@ -5,7 +5,7 @@
       <form autocomplete="off" ref="addCaseForm" v-on:submit.prevent="submit">
         <fieldset>
           <div class="form-group">
-            <label>{{ $t("worklist.patient") }}*</label>
+            <label>{{ $tc("worklist.patient", 1) }}*</label>
             <resource-select
               :fhirBaseUrl="fhirBaseUrl"
               :resourceName="'Patient'"
@@ -41,7 +41,6 @@
 import Spinner from "vue-simple-spinner";
 import config from "@/config/config";
 import { mapState } from "vuex";
-import { ResourceSelector } from "@molit/fhir-components";
 import ResourceSelect from "@/components/ui/ResourceSelect";
 import { addEntry } from "../api/process-api";
 import { getStringFromHumanName } from "@molit/fhir-util";
@@ -151,7 +150,6 @@ export default {
 
   components: {
     ResourceSelect,
-    ResourceSelector,
     Spinner
   }
 };

@@ -1,17 +1,22 @@
-import { expect } from "chai";
-import { shallowMount } from "@vue/test-utils";
-import Vue from "vue";
+import { shallowMount, createLocalVue } from "@vue/test-utils";
 import BootstrapVue from "bootstrap-vue";
 import LinkTile from "@/components/LinkTile.vue";
+import VueRouter from "vue-router";
 
-Vue.use(BootstrapVue);
+const localVue = createLocalVue();
+const router = new VueRouter();
+localVue.use(VueRouter);
+localVue.use(BootstrapVue);
 
 describe("LinkTile.vue", () => {
-  it("renders props.title when passed", () => {
+  test("renders props.title when passed", () => {
     const title = "new title";
     const wrapper = shallowMount(LinkTile, {
+      localVue,
+      router,
       propsData: { title }
     });
-    expect(wrapper.text()).to.include(title);
+    expect(wrapper.isVueInstance()).toBeTruthy();
+    expect(wrapper.text()).toContain(title);
   });
 });

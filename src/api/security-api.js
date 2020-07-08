@@ -7,13 +7,17 @@ const URL_ROLE = `${config.SECURITY_URL}/role/`;
 /**
  * Fetches all users from the authentication server.
  *
- * @param {String} [token] - the authentication token
+ * @param {String} token - the authentication token
+ * @param {Number} [first] - the first item number
+ * @param {Number} [max] - max number of items
+ * @param {String} [search] - search string
  * @returns {Promise} - the web service response as Promise
  */
-export const getUsers = (token, first, max) => {
+export const getUsers = (token, first = 0, max = 50, search) => {
   const queryParams = {
     first,
-    max
+    max,
+    search
   };
 
   return get(URL_USER, queryParams, token);
@@ -99,4 +103,16 @@ export const deleteUser = (id, token) => {
  */
 export const getRoles = token => {
   return get(URL_ROLE, {}, token);
+};
+
+/**
+ * Deletes the given roles from the user with the given id.
+ *
+ * @param {String} token - the authentication token
+ * @param {string|number} userId - the user id
+ * @param {Array} roles - the roles to delete
+ * @returns {Promise} - the web service response as Promise
+ */
+export const deleteRolesFromUser = (token, userId, roles) => {
+  return remove(`${URL_ROLE}${userId}`, roles, token);
 };

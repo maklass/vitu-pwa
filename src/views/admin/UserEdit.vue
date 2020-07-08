@@ -10,7 +10,11 @@
       <div class="page-body">
         <div v-if="user && !saving">
           <form @submit.prevent="save" ref="form" autocomplete="off">
-            <fieldset>
+            <div class="pt-3" v-if="user.fromFederation">
+              <form-information :text="$t('userFromFederationInfo')" />
+              <hr />
+            </div>
+            <fieldset :disabled="user.fromFederation">
               <legend>{{ $t("admin.account") }}</legend>
               <div class="form-group row">
                 <label for="firstName" class="col-md-3 col-form-label">{{ $t("firstName") }}*</label>
@@ -27,7 +31,7 @@
               <div class="form-group row">
                 <label for="username" class="col-md-3 col-form-label">{{ $t("username") }}*</label>
                 <div class="col-md-9">
-                  <input type="text" class="form-control" id="username" required :placeholder="$t('username')" v-model="user.username" />
+                  <input type="text" class="form-control" id="username" required :placeholder="$t('username')" v-model="user.username" :disabled="isExistingUser" />
                 </div>
               </div>
               <div class="form-group row">
@@ -36,10 +40,23 @@
                   <input type="email" class="form-control" id="email" required :placeholder="$t('email')" v-model="user.email" />
                 </div>
               </div>
-              <div class="form-group row">
+              <div class="form-group row" v-if="!user.fromFederation">
                 <label for="organization" class="col-md-3 col-form-label">{{ $t("organization") }}</label>
                 <div class="col-md-9">
-                  <input type="text" class="form-control" id="organization" :placeholder="$t('organization')" v-model="user.company" />
+                  <resource-select
+                    :fhirBaseUrl="fhirBaseUrl"
+                    :resourceName="'Organization'"
+                    :titleAttribute="organizationSelector.titleAttribute"
+                    :subtitleAttributes="organizationSelector.subtitleAttributes"
+                    :searchAttributes="organizationSelector.searchAttributes"
+                    :queryParams="organizationSelector.queryParams"
+                    :searchInputPlaceholder="$t('search')"
+                    :token="token"
+                    :required="false"
+                    @error="handleError"
+                    v-model="organization"
+                    :value="{ name: user.company }"
+                  />
                 </div>
               </div>
             </fieldset>
@@ -49,7 +66,7 @@
                 <div class="col-form-label col-md-3 pt-0"></div>
                 <div class="col-md-9">
                   <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="set-password" v-model="setPassword" />
+                    <input class="form-check-input" type="checkbox" id="set-password" v-model="setPassword" :disabled="user.fromFederation" />
                     <label class="form-check-label" for="set-password">{{ $t("setNewPassword") }}</label>
                   </div>
                 </div>
@@ -109,11 +126,14 @@
 
 <script>
 import { mapState } from "vuex";
-import { addUser, updateUser, getUserById, getRoles, resetPassword } from "@/api/security-api";
+import { addUser, updateUser, getUserById, getRoles, resetPassword, deleteRolesFromUser } from "@/api/security-api";
 import Spinner from "vue-simple-spinner";
 import notifications from "@/mixins/notifications";
-
+import ResourceSelect from "@/components/ui/ResourceSelect";
+import config from "@/config/config";
+import { differenceBy } from "lodash";
 import Breadcrumps from "@/components/ui/Breadcrumps";
+import FormInformation from "@/components/ui/FormInformation";
 import NotificationPanels from "@/components/ui/NotificationPanels";
 
 export default {
@@ -121,6 +141,30 @@ export default {
 
   data() {
     return {
+      organizationSelector: {
+        searchAttributes: [
+          {
+            name: "Name",
+            value: "name:contains"
+          }
+        ],
+        queryParams: {
+          _sort: "name",
+          active: true
+        },
+        titleAttribute: {
+          value: "name",
+          type: "sring"
+        },
+        subtitleAttributes: [
+          {
+            name: "",
+            value: "",
+            type: "string"
+          }
+        ]
+      },
+      organization: { name: null },
       roles: null,
       user: null,
       password: null,
@@ -135,7 +179,9 @@ export default {
     ...mapState({
       token: state => state.authentication.keycloak.token
     }),
-
+    fhirBaseUrl() {
+      return config.FHIR_URL;
+    },
     isExistingUser() {
       return this.$route.params.id && this.$route.params.id !== "new";
     },
@@ -170,8 +216,15 @@ export default {
       try {
         this.saving = true;
         if (this.isExistingUser) {
+          const rolesToRemove = differenceBy(this.roles, this.user.realmRoles, "id");
+          if (rolesToRemove && rolesToRemove.length) {
+            await deleteRolesFromUser(this.token, this.user.id, rolesToRemove);
+          }
           if (this.user.realmRoles) {
             this.user.realmRoles = this.user.realmRoles.map(r => r.name);
+          }
+          if (this.organization) {
+            this.user.company = this.organization.name;
           }
           if (this.setPassword) {
             await resetPassword(this.user, this.password, this.token);
@@ -182,9 +235,14 @@ export default {
           if (this.setPassword) {
             this.user.credentials = [
               {
-                value: this.password
+                temporary: true,
+                value: this.password,
+                type: "password"
               }
             ];
+          }
+          if (this.organization) {
+            this.user.organizationId = this.organization.id;
           }
           await addUser(this.user, this.token);
           this.$router.push({ name: "users", query: { success: "admin.createUserSuccessful" } });
@@ -193,6 +251,18 @@ export default {
         this.handleKeycloakError(e);
         this.saving = false;
       }
+    },
+
+    mapRoles(roles) {
+      if (!roles) {
+        return [];
+      }
+      return roles.map(r => {
+        return {
+          id: r.id,
+          name: r.name
+        };
+      });
     },
 
     onSubmit() {
@@ -219,7 +289,7 @@ export default {
     }
 
     try {
-      this.roles = (await getRoles(this.token)).data;
+      this.roles = this.mapRoles((await getRoles(this.token)).data);
     } catch (e) {
       this.handleError(e, this);
     }
@@ -227,15 +297,9 @@ export default {
     if (this.isExistingUser) {
       try {
         this.user = (await getUserById(this.$route.params.id, this.token)).data;
-        if (this.user.realmRoles) {
-          this.user.realmRoles = this.user.realmRoles.map(r => {
-            return {
-              id: r.id,
-              name: r.name
-            };
-          });
-        } else {
-          this.user.realmRoles = [];
+        this.user.realmRoles = this.mapRoles(this.user.realmRoles);
+        if (this.user.company) {
+          this.organization.name = this.user.company;
         }
       } catch (e) {
         this.handleError(e, this);
@@ -245,7 +309,7 @@ export default {
         username: null,
         firstName: null,
         lastName: null,
-        company: null,
+        organizationId: null,
         realmRoles: [],
         email: null,
         emailVerified: true
@@ -255,8 +319,10 @@ export default {
 
   components: {
     Breadcrumps,
+    FormInformation,
     NotificationPanels,
-    Spinner
+    Spinner,
+    ResourceSelect
   }
 };
 </script>

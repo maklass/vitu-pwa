@@ -3,7 +3,9 @@
     <div class="headline text-muted">
       <div v-if="conference.tumorConference">{{ conference.tumorConference.description }}</div>
       <div v-if="!conference.tumorConference">{{ conference.description }}</div>
-      <div v-if="conference.tumorConference && conference.tumorConference.date">{{ $d(new Date(conference.tumorConference.date), "long") }}</div>
+      <div v-if="showDate && conference.tumorConference && conference.tumorConference.date">
+        <span v-if="showDaily">{{ $t("daily") }},</span> {{ $d(new Date(conference.tumorConference.date), dateFormat) }}
+      </div>
     </div>
     <div class="spacer" />
     <div class="conference-card-footer">
@@ -29,6 +31,21 @@ export default {
     showEntries: {
       type: Boolean,
       default: true
+    },
+
+    showDate: {
+      type: Boolean,
+      default: true
+    },
+
+    showDaily: {
+      type: Boolean,
+      default: false
+    },
+
+    dateFormat: {
+      type: String,
+      default: "long"
     }
   }
 };

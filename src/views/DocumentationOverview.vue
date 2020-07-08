@@ -15,8 +15,6 @@
       <div class="container">
         <div class="page-header">
           <h5 class="headline">{{ $t("documentation.documentation") }}</h5>
-          <div class="spacer" />
-          <router-link class="btn btn-primary" tag="button" :to="{ name: 'documentation-new' }">{{ $t("documentation.newProtocol") }}</router-link>
         </div>
         <div class="main">
           <h6>{{ $t("documentation.existingProtocols") }}</h6>
@@ -31,7 +29,7 @@
           @error="handlePaginatedError"
         >
           <div v-if="protocols && protocols.length">
-            <list-item class="list-item" v-for="protocol in protocols" :key="protocol.id" :title="protocol.subject.display" :subtitle="protocol.id + ' · ' + $d(new Date(protocol.date))" @click="onClick(protocol)">
+            <list-item class="list-item" v-for="protocol in protocols" :key="protocol.id" :title="protocol.subject.display" :subtitle="getSubtitle(protocol)" @click="onClick(protocol)">
               <template slot="icon">
                 <file-document-icon class="icon" />
               </template>
@@ -101,6 +99,15 @@ export default {
   },
 
   methods: {
+    getSubtitle(protocol) {
+      if (protocol) {
+        let subtitle = "" + protocol.id;
+        if (protocol.date) {
+          subtitle += " · " + this.$d(new Date(protocol.date));
+        }
+        return subtitle;
+      }
+    },
     onClick(protocol) {
       this.$router.push({ name: "documentation", params: { id: protocol.id } });
     },

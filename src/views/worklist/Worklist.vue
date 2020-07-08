@@ -1,5 +1,6 @@
 <template>
   <div class="worklist">
+    <side-nav />
     <main class="worklist-main">
       <router-view />
     </main>
@@ -7,7 +8,7 @@
 </template>
 
 <script>
-import SideNav from "@/components/admin/SideNav";
+import SideNav from "@/views/worklist/SideNav";
 
 export default {
   components: {
@@ -20,5 +21,9 @@ export default {
 .worklist {
   background: white;
   flex: 1;
+}
+
+.worklist-main {
+  margin-left: 260px;
 }
 </style>

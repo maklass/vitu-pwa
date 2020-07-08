@@ -17,7 +17,7 @@ export default {
       default: ""
     },
     route: {
-      type: String | Object,
+      type: [Object, String],
       default: ""
     }
   }

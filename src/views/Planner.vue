@@ -24,7 +24,7 @@
           <div class="list-group" v-if="schedulableCases">
             <draggable class="draggable" v-model="schedulableCases" v-bind="dragOptions" @start="drag = true" @end="drag = false">
               <div class="list-group-item flex-column align-items-start group-item entry" v-for="clinicalCase in schedulableCases" :key="clinicalCase.id">
-                <div class="headline text-muted">{{ $t("planner.case") }} {{ clinicalCase.caseId }}</div>
+                <div class="headline text-muted">{{ $tc("planner.case") }} {{ clinicalCase.caseId }}</div>
                 <br />
                 <div class="text-muted">{{ clinicalCase.patientName }}, {{ clinicalCase.patientBirthDate ? $d(new Date(clinicalCase.patientBirthDate)) : "" }}</div>
                 <div class="text-muted">{{ clinicalCase.diagnosis }}</div>
@@ -204,7 +204,7 @@
               <thead>
                 <tr>
                   <th scope="col">#</th>
-                  <th scope="col">{{ this.$i18n.t("worklist.patient") }}</th>
+                  <th scope="col">{{ this.$i18n.tc("worklist.patient") }}</th>
                   <th scope="col">{{ this.$i18n.t("worklist.birthDate") }}</th>
                   <th scope="col">{{ this.$i18n.t("worklist.diagnosis") }}</th>
                 </tr>
@@ -244,12 +244,13 @@ import ConferenceCard from "@/components/ConferenceCard";
 import NotificationPanels from "@/components/ui/NotificationPanels";
 import RoomParticipants from "@/components/RoomParticipants";
 import { addEntryToConference, addEntry } from "@/api/process-api";
-import { fetchResources, mapFhirResponse, updateResource } from "@molit/fhir-api";
-import { getRooms, addRoom, addRoomsBatch, addParticipantsToRoom, deleteRoom, getParticipantsInRoom } from "@/api/video-api";
+import { fetchResources, mapFhirResponse } from "@molit/fhir-api";
+import { updateTask } from "@/api/worklist-api";
+import { getRooms, addRoom, addParticipantsToRoom, deleteRoom, getParticipantsInRoom } from "@/api/video-api";
 import config from "../config/config";
+import { addColonToISODateString } from "@/util/util";
 
 import Datepicker from "vuejs-datepicker";
-import DeleteIcon from "vue-material-design-icons/Delete";
 import PencilIcon from "vue-material-design-icons/Pencil";
 import PlusIcon from "vue-material-design-icons/Plus";
 import Spinner from "vue-simple-spinner";
@@ -298,7 +299,7 @@ export default {
       },
 
       currentPage: 1,
-      max: 20,
+      max: 30,
 
       deleteInProgress: false
     };
@@ -490,7 +491,7 @@ export default {
   methods: {
     async fetchStatuses() {
       try {
-        const valueSet = mapFhirResponse(await fetchResources(config.FHIR_URL, "ValueSet", { url: "http://molit.eu/fhir/ValueSet/vitu-workinglist" }, this.token))[0];
+        const valueSet = mapFhirResponse(await fetchResources(config.FHIR_URL, "ValueSet", { url: "http://molit.eu/fhir/vitu/ValueSet/vitu-workinglist" }, this.token))[0];
         if (!valueSet) {
           throw new Error("ValueSet 'vitu-worklist' not found on server.");
         }
@@ -564,12 +565,10 @@ export default {
 
           await addEntryToConference(this.currentConference.tumorConference.id, tempEntry, this.token);
 
-          const status = this.statuses.find(status => status.code === "wait-for-case-review");
+          const status = this.statuses.find(status => status.code === "case-review-announced");
 
           if (status) {
-            const task = entry.task;
-            task.businessStatus = status;
-            await updateResource(config.FHIR_URL, task, this.token);
+            await updateTask(config.FHIR_URL, this.token, entry.task, status, null, null);
           }
 
           this.showSuccess = true;
@@ -611,8 +610,8 @@ export default {
           this.newConference.date = date;
         }
         if (this.addEndDate) {
-          const room = (await addRoomsBatch(this.newConference.name, this.newConference.date, this.newConference.endDate, this.token)).data;
-          console.log(room);
+          // const room = (await addRoomsBatch(this.newConference.name, this.newConference.date, this.newConference.endDate, this.token)).data;
+          // console.log(room);
         } else {
           const room = (await addRoom(this.newConference.name, this.newConference.date, this.token)).data;
           if (participantIds.indexOf(this.subject) === -1) {
@@ -673,6 +672,9 @@ export default {
         let response = await getRooms(this.token);
         if (response.status === 200 && response.data.entity) {
           this.rooms = response.data.entity.map(room => {
+            if (room && room.tumorConference && room.tumorConference.date) {
+              room.tumorConference.date = addColonToISODateString(room.tumorConference.date);
+            }
             return {
               ...room,
               numberOfCases: 0
@@ -690,7 +692,7 @@ export default {
       try {
         const searchParams = {
           code: "http://molit.eu/fhir/NamingSystem/vitu-task|mtb-task",
-          "business-status": "tumor-conference-ready",
+          "business-status": "report-ready",
           _sort: "-authored-on",
           _include: ["Task:patient"]
         };
@@ -720,8 +722,8 @@ export default {
 
     async initialize() {
       try {
-        await this.fetchStatuses();
-        await this.fetchEntries();
+        this.fetchStatuses();
+        this.fetchEntries();
         await this.getRooms();
       } catch (e) {
         this.handleError(e);
@@ -737,7 +739,6 @@ export default {
     draggable,
     ConferenceCard,
     Datepicker,
-    DeleteIcon,
     NotificationPanels,
     PencilIcon,
     PlusIcon,
